@@ -37,7 +37,7 @@ function squaregaussianrelation(u0,ds)
 # exit position and velocity.
 # Maybe use a fixed step so that way it's more modulated?
 
-# options = odeset('Events',sgEventsFcn);   #### This is where we have problems??
+# options = odeset('Events',sgEventsFcn);   #### How to do in Julia?
 
 ~,u = ode45(gaussianmetric, u0, [0,ds]) #options);
 # [~,u] = ode45(@gaussianmetric, [0,1], u0);  % for example
