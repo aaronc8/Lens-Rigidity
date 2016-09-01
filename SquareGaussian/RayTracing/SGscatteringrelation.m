@@ -21,7 +21,7 @@ for i = 1:Nedge-2
         uS{i,j} = squaregaussianrelation(u0,ds);
         u0 = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];   % Only for right edge!
         uE{i,j} = squaregaussianrelation(u0,ds);
-        u0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   % Only for bottom edge!
+        u0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   % Only for top edge!
         uN{i,j} = squaregaussianrelation(u0,ds);
     end
 end
@@ -49,7 +49,7 @@ end
 % % The North (Top) Edge:
 % for i = 1:Nedge-2
 %     for j = 1:Nangle-2
-%         u0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   % Only for bottom edge!
+%         u0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   % Only for top edge!
 %         uN{i,j} = squaregaussianrelation(u0,ds);
 %     end
 % end
