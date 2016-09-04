@@ -37,7 +37,7 @@ function squaregaussianrelation(u0,ds)
 # exit position and velocity.
 # Maybe use a fixed step so that way it's more modulated?
 
-# options = odeset('Events',sgEventsFcn);   #### How to do in Julia?
+# options = odeset('Events',sgEventsFcn);   #### This is where we have problems??
 
 ~,u = ode45(gaussianmetric, u0, [0,ds]) #options);
 # [~,u] = ode45(@gaussianmetric, [0,1], u0);  % for example
@@ -125,17 +125,17 @@ function SGscatteringrelation(Nedge, Nangle)
 
 dl = 2/Nedge;
 dphi = pi/Nangle;
-uW = cell((Nedge-2),(Nangle-2));
-uN = cell((Nedge-2),(Nangle-2));
-uS = cell((Nedge-2),(Nangle-2));
-uE = cell((Nedge-2),(Nangle-2));
+uW = cell((Nedge-1),(Nangle-1));
+uN = cell((Nedge-1),(Nangle-1));
+uS = cell((Nedge-1),(Nangle-1));
+uE = cell((Nedge-1),(Nangle-1));
 # For the cells, each row is a point on the boundary edge and each collumn is
 # an angle of incidence.
 
 ds = 1;
 
-for i = 1:Nedge-2
-    for j = 1:Nangle-2
+for i = 1:Nedge-1
+    for j = 1:Nangle-1
         u0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   # Only for left edge!
         uW[i,j] = squaregaussianrelation(u0,ds);
         u0 = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];   # Only for bottom edge!
