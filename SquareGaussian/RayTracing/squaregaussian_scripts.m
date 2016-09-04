@@ -36,21 +36,27 @@ options = odeset('Events',@sgEventsFcn);
 % direction = -1;
 % end
 %%
-for i = 1:Nedge-2
+for i = 1:Nedge-1
     clf
-    for j = 1:Nangle-2
+    for j = 1:Nangle-1
         % u0 = [-1;1-i*dl;cos(j*dphi-pi/2); sin(j*dphi-pi/2)];   % Only for left edge!
         % u0 = [-1+i*dl;-1;cos(j*dphi); sin(j*dphi)];   % This is for bottom edge!
         % u0 = [1;-1+i*dl;cos(j*dphi+pi/2); sin(j*dphi+pi/2)];   % Only for right edge!
          u0 = [1-i*dl;1;cos(-j*dphi); sin(-j*dphi)];   % This is for top edge!
         [s,u,~,ue] = ode45(@gaussianmetric, [0,1], u0, options);
+        % The arclength interval of ODE evolution has to be small enough
+        % for the event to trigger sometimes, perhaps relate with dl? 
+        
         % Noting how some rays don't make it out yet
-        plot(u(:,1), u(:,2)); axis([-2 2 -2 2]);
-        xlabel('x position'); ylabel('y position');
-        x = -1:0.1:1;
-        y = ones(length(x),1);
-        hold on
-        plot(x,y); plot(x,-y); plot(y,x); plot(-y,x);
+        plot(u(:,1), u(:,2)); 
+        if j==1
+            axis([-2 2 -2 2]);
+            xlabel('x position'); ylabel('y position');
+            x = -1:0.1:1;
+            y = ones(length(x),1);
+            hold on
+            plot(x,y); plot(x,-y); plot(y,x); plot(-y,x);
+        end
         pause(0.001);
     end
 end
@@ -67,15 +73,15 @@ toc;
 
 tic;
 ds = 1;  % Or can make it smaller/larger?
-uNSEW = cell((Nedge-2),(Nangle-2)); 
+uNSEW = cell((Nedge-1),(Nangle-1)); 
 % The cell of all exit-pos/vel for each given incidence pos/angle. 
 % To access: Use for ex. cellfun(@(v) v(4), uNSEW(:,1)) ?
 % For the cells, each row is a point on the boundary and each collumn is
 % the angle of incidence. So,
 % The 1st entry ~ location on the edge. 2nd entry ~ angle of incidence.
 
-for i = 1:Nedge-2
-    for j = 1:Nangle-2
+for i = 1:Nedge-1
+    for j = 1:Nangle-1
         % u0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   % Only for left (West) edge!
         % u0 = [-1+i*dl;-1;cos(j*dphi); sin(j*dphi)];   % This is for bottom (South) edge!
         % u0 = [1;-1+i*dl;cos(j*dphi+pi/2); sin(j*dphi+pi/2)];   % Only for right (East) edge!
