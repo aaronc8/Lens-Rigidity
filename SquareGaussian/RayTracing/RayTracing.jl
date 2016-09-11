@@ -150,3 +150,108 @@ end
 return uW, uS, uE, uN;
 
 end
+
+
+#####################################################################
+
+
+function circlegaussianrelation(u0,ds)
+# This will take an initial condition and evolve the ODE for the scattering
+# relation. It will also make sure to get when it exits, and return the
+# exit position and velocity.
+# Maybe use a fixed step so that way it's more modulated?
+
+# options = odeset('Events',sgEventsFcn);   #### This is where we have problems??
+
+~,u = ode45(gaussianmetric, u0, [0,ds]) #options);
+# [~,u] = ode45(@gaussianmetric, [0,1], u0);  % for example
+# it should be kept adapative for the interval of length
+
+# uf = u0;   % initialize it, but I don't think we need to?
+
+k = find(x -> x[1]^2 + x[2]^2 > 1, u[2:end]);
+
+if isempty(k)
+    u0 = u[end];
+    uf = circlegaussianrelation(u0,ds);
+    return uf;
+end
+
+if !isempty(k)
+   k = k[1] + 1;
+end
+
+uf = u[k];
+dy = u[k][2][1]-u[k-1][2][1];    # Be careful that they
+dx = u[k][1][1]-u[k-1][1][1];
+m = dy/dx;
+# Can we just use slope m (or, dy and dx) for the directions/velocities?
+
+y(x) = u[k-1][2][1] + m*(x-u[k-1][1][1]);
+f(x) = x^2 + y(x)^2 - 1;   # We don't necessarily need the square root.
+df(x) = 2.0.*x + 2.0.*y(x)*m;
+a=u[k-1][1][1];
+b=u[k][1][1];
+
+uf[1] = newtonbisection(f,df,a,b,10^(-5.0));
+uf[2] = y(uf[1]);
+## Newton Solve for f(x) = 0 !!!
+
+uf[3] = uf[3]/sqrt(uf[3]^2 + uf[4]^2);
+uf[4] = uf[4]/sqrt(uf[3]^2 + uf[4]^2);
+
+return uf;
+
+end
+
+
+###############################################################
+
+
+function CGscatteringrelation(Nrotate, Nangle)
+# Gather the exit data for the incidence data along the
+# West(left),North(top),East(right),South(bottom) edges.
+
+dtheta = 2*pi/Nrotate;
+dphi = pi/Nangle;
+uTotExit = cell(Nrotate - 1, Nangle - 1);
+# For the cells, each row is a point on the boundary edge and each collumn is
+# an angle of incidence.
+
+ds = 1;
+
+for i = 1:Nrotate-1
+    for j = 1:Nangle-1
+      u0 = [cos(i*dtheta), sin(i*dtheta), cos(i*dtheta + pi/2 + j*dphi), sin(i*dtheta + pi/2 + j*dphi)];
+      uTotExit[i,j] = circlegaussianrelation(u0,ds);
+    end
+end
+
+return uTotExit;
+
+end
+
+
+#################################################
+
+
+function newtonbisection(f,df,a::Float64,b::Float64,tol)
+maxiter = 100;
+p=a; iter = 1;
+while abs(f(p)[1]) > tol && iter < 100
+  iter = iter + 1;
+   p = p - f(p)/df(p);
+   if p>b
+       p=(a+b)/2; end;
+   if p<a
+       p=(a+b)/2; end;
+   if f(p)*f(b)<0
+       a=p;
+   else
+       b=p;
+   end
+end
+
+return p;
+
+end
