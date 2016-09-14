@@ -192,15 +192,14 @@ function circlegaussianrelation(u0,ds)
 # [~,u] = ode45(@gaussianmetric, [0,1], u0);  % for example
 # it should be kept adapative for the interval of length
 uf = u[end];
-R = sqrt(uf[1]^2+uf[2]^2);
 
-if R < 1
+if uf[1]^2+uf[2]^2 < 1
   u0 = uf;
   uf = squaregaussianrelation(u0,ds);
 end
 
-uf[1] = uf[1]/R;
-uf[2] = uf[2]/R;
+uf[1] = uf[1]/sqrt(uf[1]^2+uf[2]^2);
+uf[2] = uf[2]/sqrt(uf[1]^2+uf[2]^2);
 
 uf[3] = uf[3]/sqrt(uf[3]^2 + uf[4]^2);
 uf[4] = uf[4]/sqrt(uf[3]^2 + uf[4]^2);
