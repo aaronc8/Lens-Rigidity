@@ -69,8 +69,8 @@ toc;
 % Could subtract two methods to see how their accuracy is w.r.t. each other
 
 tic;
-ds = 1;  % Or can make it smaller/larger?
-uExit = cell((Nrotate-1),(Nangle-1)); 
+ds = dtheta*2^3;  % Or can make it smaller/larger?
+uExit = zeros((Nrotate-1),(Nangle-1),4); 
 % The cell of all exit-pos/vel for each given incidence pos/angle. 
 % For the cells, each row is a point on the boundary and each collumn is
 % the angle of incidence. So,
@@ -78,14 +78,15 @@ uExit = cell((Nrotate-1),(Nangle-1));
 
 for i = 1:Nrotate-1
     for j = 1:Nangle-1
+        ds = 4*j*dphi*(Nangle-j)/Nangle;
         u0 = [cos(i*dtheta), sin(i*dtheta), cos(i*dtheta + pi/2 + j*dphi), sin(i*dtheta + pi/2 + j*dphi)]; 
-        uExit{i,j} = circlegaussianrelation(u0,ds);
+        uExit(i,j,:) = circlegaussianrelation(u0,ds);
     end
 end
 toc;
 %%
 % To check qualitatively with the plot above:
-celldisp(uExit(end,:))
+disp(uExit(end,:,:))
 % Be careful if we wanted to switch the order of for loops
 % It looked consistent with all 4 sides. 
 %% Entire scattering relation
@@ -94,7 +95,13 @@ tic;
 uTotExit = CGscatteringrelation(Nrotate, Nangle);
 toc;
 % To check with prior notes I guess:
-celldisp(uTotExit(end,:))
-
+disp(uTotExit(end,:,:))
+%%
+% To get the components, I guess just do a for loop, e.g. for x:
+xexit = zeros(Nrotate-1,Nangle-1);
+i = 1 : Nrotate-1;
+j = 1:Nangle-1;
+xexit(i,j) = uTotExit(i,j,1);
+disp(xexit(end,:) - uTotExit(end,:,1))
 
 
