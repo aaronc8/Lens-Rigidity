@@ -12,6 +12,8 @@ ds=2.0;
 circle(x,y) = x.^2 + y.^2 - 1;
 circlegrad(x,y) = [2.*x, 2.*y];
 
+## Everything has toggled on/off using gaussianmetric or gaussianmetrictheta! ##
+
 ### PART 1: Just for checking the ODE is setup and evolving correctly
 
 for i = 1:Nrotate-1
