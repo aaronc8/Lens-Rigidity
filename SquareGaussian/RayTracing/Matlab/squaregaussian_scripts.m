@@ -38,12 +38,13 @@ options = odeset('Events',@sgEventsFcn);
 %%
 for i = 1:Nedge-1
     clf
+    ds = dl*i*(Nedge-i)/Nedge;
     for j = 1:Nangle-1
         % u0 = [-1;1-i*dl;cos(j*dphi-pi/2); sin(j*dphi-pi/2)];   % Only for left edge!
         % u0 = [-1+i*dl;-1;cos(j*dphi); sin(j*dphi)];   % This is for bottom edge!
         % u0 = [1;-1+i*dl;cos(j*dphi+pi/2); sin(j*dphi+pi/2)];   % Only for right edge!
          u0 = [1-i*dl;1;cos(-j*dphi); sin(-j*dphi)];   % This is for top edge!
-        [s,u,~,ue] = ode45(@gaussianmetric, [0,1], u0, options);
+        [s,u,~,ue] = ode45(@gaussianmetric, [0,ds], u0, options);
         % The arclength interval of ODE evolution has to be small enough
         % for the event to trigger sometimes, perhaps relate with dl? 
         
@@ -72,8 +73,8 @@ toc;
 % Could subtract two methods to see how their accuracy is w.r.t. each other
 
 tic;
-ds = 1;  % Or can make it smaller/larger?
-uNSEW = cell((Nedge-1),(Nangle-1)); 
+ds = 0;  % Or can make it smaller/larger?
+uNSEW = zeros((Nedge-1),(Nangle-1),4); 
 % The cell of all exit-pos/vel for each given incidence pos/angle. 
 % To access: Use for ex. cellfun(@(v) v(4), uNSEW(:,1)) ?
 % For the cells, each row is a point on the boundary and each collumn is
@@ -81,18 +82,19 @@ uNSEW = cell((Nedge-1),(Nangle-1));
 % The 1st entry ~ location on the edge. 2nd entry ~ angle of incidence.
 
 for i = 1:Nedge-1
+    ds = dl*i*(Nedge-i)/Nedge;
     for j = 1:Nangle-1
         % u0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   % Only for left (West) edge!
         % u0 = [-1+i*dl;-1;cos(j*dphi); sin(j*dphi)];   % This is for bottom (South) edge!
         % u0 = [1;-1+i*dl;cos(j*dphi+pi/2); sin(j*dphi+pi/2)];   % Only for right (East) edge!
          u0 = [1-i*dl;1;cos(-j*dphi); sin(-j*dphi)];   % This is for top (North) edge!
-        uNSEW{i,j} = squaregaussianrelation(u0,ds);
+        uNSEW(i,j,:) = squaregaussianrelation(u0,ds);
     end
 end
 toc;
 %%
 % To check qualitatively with the plot above:
-celldisp(uNSEW(end,:))
+disp(uNSEW(end,:,:))
 % Be careful if we wanted to switch the order of for loops
 % It looked consistent with all 4 sides. 
 %% Entire scattering relation
@@ -101,8 +103,15 @@ tic;
 [uW, uN, uE, uS] = SGscatteringrelation(Nedge, Nangle);
 toc;
 % To check with prior notes I guess:
-celldisp(uN(end,:))
+disp(uN(end,:,:))
 
+%%
+% To get the components, I guess just do a for loop, e.g. for x:
+yexit = zeros(Nedge-1,Nangle-1);
+i = 1 : Nedge-1;
+j = 1:Nangle-1;
+yexit(i,j) = uExit(i,j,2);
+disp(yexit(end,:) - uExit(end,:,2))
 
 
 
