@@ -93,7 +93,7 @@ end
 #
 #
 # while domain(uf[1],uf[2]) < 1
-#   s,u = ODE.ode45(gaussianmetric,uf,[0.0,ds],stopevent = (s,u) -> ( u[1]^2 + u[2]^2 > 1) );
+#   s,u = ODE.ode45(metric,uf,[0.0,ds],stopevent = (s,u) -> ( u[1]^2 + u[2]^2 > 1) );
 #   uf = u[end];
 # end
 #
@@ -103,7 +103,7 @@ end
 # # Need more data points (specifically 5) for 4th order:
 # dt = spread/4.0;
 # tspan = 0:dt:spread;
-# s,u = ODE.ode45(gaussianmetric,u0,tspan);
+# s,u = ODE.ode45(metric,u0,tspan);
 # up = u[1:5]; sp = s[1:5] + s1;
 # up[end] = uf; sp[end] = s2;
 # xp = map( v -> v[1], up); yp = map( v-> v[2], up);
