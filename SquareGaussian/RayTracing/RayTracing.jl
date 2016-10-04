@@ -27,7 +27,7 @@ function gaussianmetrictheta(s,u)
       dH[1] = cos(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
       dH[2] = sin(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
       # The momenta:
-      dH[3] = (u[1].*sin(u[3]) - u[2].*cos(u[3])).*exp(u[1].^2/2 + u[2].^2)/2;
+      dH[3] = (u[1].*sin(u[3]) - u[2].*cos(u[3])).*exp(u[1].^2/2 + u[2].^2/2);
       return dH
 end
 
@@ -103,8 +103,10 @@ function squaregaussianrelation(u0,ds)
   vxp = map( v -> v[3], up); vyp = map( v-> v[4], up);
   vxI = polyfit(sp,vxp); vyI = polyfit(sp, vyp);
 
+uf = u2; # Need to use for corner cases, if both |x|,|y| > 1.
+
   # Because it's not root finding the exit point:
-  if abs(u2[1]) >= 1  # x-exit
+  if abs(uf[1]) >= 1  # x-exit
     dom = xI - sign(u2[1]);
     dxI = polyder(xI);
     sout = newtonbisection(dom, dxI, s1, s2, 1e-5);
@@ -112,13 +114,13 @@ function squaregaussianrelation(u0,ds)
   end
 
 
-  if abs(u2[2]) >= 1  # Also to account for if y exits before x.
-    dom = yI - sign(u2[2]);
+  if abs(uf[2]) >= 1  # Also to account for if y exits before x.
+    dom = yI - sign(uf[2]);
     dyI = polyder(yI);
     sout = newtonbisection(dom, dyI, s1, s2, 1e-5);
+    uf = [xI(sout), yI(sout), vxI(sout), vyI(sout)];
   end
 
-  uf = [xI(sout), yI(sout), vxI(sout), vyI(sout)];
 
   return uf;
 
@@ -269,7 +271,7 @@ u1 = u[k-1]; u2 = u[k];
 s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1;
 
 # u1 = u[end-1]; u2 = uf;
-# s1 = s[end-1][1]; s2 = s[end][1]; sf = s2-s1;
+# s1 = s[end-1][1]; s2 = s[end][1]; spread = s2-s1;
 
 # Need more data points (specifically 5) for 4th order:
 dt = spread/4.0;
