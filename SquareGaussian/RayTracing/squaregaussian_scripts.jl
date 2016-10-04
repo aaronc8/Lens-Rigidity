@@ -2,7 +2,7 @@ using ODE
 using PyPlot
 include("RayTracing.jl");
 
-Nedge = 2^4;   # number of partitions of sides.
+Nedge = 2^5;   # number of partitions of sides.
 Nangle = 2^5;   # number of partitions of angle.
 dphi = pi/Nangle;   # This needs to be taken better care of
 dl = 2/Nedge;
@@ -64,9 +64,9 @@ for i = 1:Nedge-1
     clf()
     for j = 1:Nangle-1
         # u0 = [-1;1-i*dl;cos(j*dphi-pi/2); sin(j*dphi-pi/2)];   # Only for left edge!
-         u0 = [-1+i*dl;-1;cos(j*dphi); sin(j*dphi)];   # This is for bottom edge!
+        # u0 = [-1+i*dl;-1;cos(j*dphi); sin(j*dphi)];   # This is for bottom edge!
         # u0 = [1;-1+i*dl;cos(j*dphi+pi/2); sin(j*dphi+pi/2)];   # Only for right edge!
-        # u0 = [1-i*dl;1;cos(-j*dphi); sin(-j*dphi)];   # This is for top edge!
+        u0 = [1-i*dl;1;cos(-j*dphi); sin(-j*dphi)];   # This is for top edge!
 
         ~,u = ode45(gaussianmetric, u0, [0.0,ds]);  # For official ODE.jl
         # ~,u = ODE.ode45(gaussianmetric, u0, [0.0,1.0], stopevent = (s,u) -> (abs(u[1]) > 1 || abs(u[2]) > 1));
@@ -95,9 +95,9 @@ for i = 1:Nedge-1
           ax[:set_ylim]([-2,2]);
           ax[:set_xlabel]("x-position");
           ax[:set_ylabel]("y-position");
-        x = -1:0.1:1;
-        y = ones(length(x),1);
-        plot(x,y); plot(x,-y); plot(y,x); plot(-y,x);
+          x = -1:0.1:1;
+          y = ones(length(x),1);
+          plot(x,y); plot(x,-y); plot(y,x); plot(-y,x);
         end
     end
 end
@@ -109,9 +109,9 @@ uNSEW = Array{Array}((Nedge-1),(Nangle-1));
 for i = 1:Nedge-1
     for j = 1:Nangle-1
         # u0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   # Only for left (West) edge!
-         u0 = [-1+i*dl;-1;cos(j*dphi); sin(j*dphi)];   # This is for bottom (South) edge!
+        # u0 = [-1+i*dl;-1;cos(j*dphi); sin(j*dphi)];   # This is for bottom (South) edge!
         # u0 = [1;-1+i*dl;cos(j*dphi+pi/2); sin(j*dphi+pi/2)];   # Only for right (East) edge!
-        # u0 = [1-i*dl;1;cos(-j*dphi); sin(-j*dphi)];   # This is for top (North) edge!
+        u0 = [1-i*dl;1;cos(-j*dphi); sin(-j*dphi)];   # This is for top (North) edge!
         uNSEW[i,j] = squaregaussianrelation(u0,ds);
     end
 end
@@ -127,10 +127,11 @@ print(uNSEW[end,:])
 
 ### Part 3: Entire scattering relation
 # Use the following:
+tic();
 uW, uS, uE, uN = SGscatteringrelation(Nedge,Nangle,ds);
 
 # Check with the prior one (need to pick NSEW)
-print(uS[end,:] - uNSEW[end,:])
+print(uN[end,:] - uNSEW[end,:])
 
 xexit = map(x -> x[1], uNSEW);
 yexit = map(x -> x[2], uNSEW);
@@ -140,6 +141,9 @@ display("y exits: ")
 display(yexit)
 display("Check every ray exited, max(xexit,yexit) in absolute value:")
 display(max(abs(xexit),abs(yexit)))
+display("Check the max across all entries:")
+display(norm(max(abs(xexit),abs(yexit))[:],Inf))
+toc();
 
 #### Now ... how to imitate ODE's events in Matlab in Julia ... use norm??
 # Like, the norm is dist(point, boundary) and if it is within a small tolerance
