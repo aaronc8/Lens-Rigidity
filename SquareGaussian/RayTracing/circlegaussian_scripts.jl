@@ -77,5 +77,5 @@ yexit = map(x -> x[2], uExit);
 display("Check that they lie on the boundary: x^2 + y^2 = 1?")
 display(xexit.^2 + yexit.^2)
 display("Check max across all entries:")
-display(norm(xexit[:].^2+yexit[:].^2,Inf))
+display(norm(xexit[:].^2+yexit[:].^2 - 1,Inf))
 toc()
