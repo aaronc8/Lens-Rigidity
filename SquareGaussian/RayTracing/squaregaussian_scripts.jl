@@ -142,7 +142,7 @@ display(yexit)
 display("Check every ray exited, max(xexit,yexit) in absolute value:")
 display(max(abs(xexit),abs(yexit)))
 display("Check the max across all entries:")
-display(norm(max(abs(xexit),abs(yexit))[:],Inf))
+display(norm(max(abs(xexit),abs(yexit))[:] - 1,Inf))
 toc();
 
 #### Now ... how to imitate ODE's events in Matlab in Julia ... use norm??
