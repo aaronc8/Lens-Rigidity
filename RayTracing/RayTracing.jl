@@ -1,3 +1,6 @@
+## Only for Square, Circle cases. See C1RayTracing for when 
+## the boundary can be given by a polar curve. 
+
 function gaussianmetric(s,u)
 # u(1) = x coordinate, u(2) = y coordinate,
 # u(3) = x velocity, u(4) = y velocity.
