@@ -45,16 +45,25 @@ function scatteringRelation(metric::Function,domain::Function,domaingrad::Functi
 s,u = ode45(metric, u0, [0.0,ds]);  # Non-legacy ODE.
 k = find(x -> domain(x[1],x[2]) > 0, u[2:end]);  # So we don't get the starting pt.
 
-while isempty(k)
+scaling = max(ds,1/ds);
+maxiter = 1;
+while isempty(k) && maxiter < 1000*scaling   # In case of trapped rays?
 # while uf[1]^2 + uf[2]^2 < 1
+  maxiter = maxiter + 1;
   uf = u[end];   # We can just input u[end] into ode45?
   s,u = ode45(metric, uf, [0.0,ds]);
   k = find(x -> domain(x[1],x[2]) > 0, u[2:end]);
   #s,u = ODE.ode45(gaussianmetric,uf,[0.0,ds],stopevent = (s,u) -> ( u[1]^2 + u[2]^2 > 1) );
   #uf = u[end];
 end
+if maxiter >= 1000*scaling   # Suspect trapped rays.
+  for k = 1:length(uf)
+    uf[k]=Inf;
+  end
+  return uf;
+end
 
-k = k[1] + 1; # because it's skewed in the find!
+k = k[1] + 1; # because it is index-skewed in the find!
 u0 = u[k-1]; uf = u[k];   # Use u0,uf to save storage?
 s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1;
 
