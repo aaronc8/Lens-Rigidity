@@ -52,12 +52,12 @@ end
 
 ### PART 2:  This is for just extracting the exit data for each entrance data
 
-ds = 1;  # Or can make it smaller/larger?
+ds = 1;  # Or can make it smaller/larger? Go by radius?
 uExit = Array{Array}((Nrotate-1),(Nangle-1));
 tic()
 for i = 1:Nrotate-1
     for j = 1:Nangle-1
-        ds = 2*j*dphi*(Nangle-j)/Nangle;
+        # ds = 2*j*dphi*(Nangle-j)/Nangle;
         # u0 = [cos(i*dtheta), sin(i*dtheta), cos(i*dtheta + pi/2 + j*dphi), sin(i*dtheta + pi/2 + j*dphi)];
         # uExit[i,j] = scatteringRelation(gaussianmetric, circle, circlegrad, u0,ds);
         u0 = [cos(i*dtheta), sin(i*dtheta), i*dtheta + pi/2 + j*dphi];
@@ -113,7 +113,7 @@ for i = 1:Nrotate-1
         if !isempty(k)
             u = u[1:k[1]+1];
         end
-        # ~,u = ODE.ode45(gaussianmetric, u0, [0.0,ds], stopevent = (s,u) -> ( u[1]^2 + u[2]^2 > 1 ) );
+
         # Noting how some rays don't make it out yet
         u1 = map(z->z[1],u);
         u2 = map(z->z[2],u);
@@ -136,12 +136,12 @@ end
 
 ### PART 2:  This is for just extracting the exit data for each entrance data
 
-ds = 1;  # Or can make it smaller/larger?
+ds = 2/min(a,b);  # Or can make it smaller/larger?
 uExit = Array{Array}((Nrotate-1),(Nangle-1));
 tic()
 for i = 1:Nrotate-1
     for j = 1:Nangle-1
-        ds = 2*j*dphi*(Nangle-j)/Nangle;
+        # ds = 2*j*dphi*(Nangle-j)/Nangle;
         x = cos(i*dtheta)./a; y = sin(i*dtheta)./b;
         # Make sure we get the correct normal angle:
         v = ellipsegrad(x,y);
@@ -186,7 +186,7 @@ Nrotate = 2^5;
 Nangle = 2^5;
 dphi = pi/Nangle;
 dtheta = 2*pi/Nrotate;
-ds = 2.0;
+ds = 3.0;
 
 for i = 1:Nrotate-1
     pause(.01)
@@ -216,7 +216,7 @@ for i = 1:Nrotate-1
         plot(u1,u2);
         ax = gca();
         if j == 1
-          ax[:set_xlim]([-2,4]);
+          ax[:set_xlim]([-3,4]);
           ax[:set_ylim]([-3,3]);
           ax[:set_xlabel]("x-position");
           ax[:set_ylabel]("y-position");
@@ -235,7 +235,7 @@ uExit = Array{Array}((Nrotate-1),(Nangle-1));
 tic()
 for i = 1:Nrotate-1
     for j = 1:Nangle-1
-        ds = 2*j*dphi*(Nangle-j)/Nangle;
+        # ds = 2*j*dphi*(Nangle-j)/Nangle;
         x = xpara(i*dtheta); y = ypara(i*dtheta);
         v = dG(x,y);
         # Make sure we get the right angle of the normal:
@@ -256,6 +256,8 @@ xexit = map(x -> x[1], uExit);
 yexit = map(x -> x[2], uExit);
 display("Check that they lie on the boundary of domain:")
 display(G(xexit,yexit))
-display("Max across all entries:")
+display("Max across all entries: (if NaN, some rays may be trapped)")
 display(norm(G(xexit,yexit)[:],Inf))
 toc()
+display("Any trapped rays: (ther are some if maxiter is less)")
+display(find(t -> t[1] == Inf, yexit))
