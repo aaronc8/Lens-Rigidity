@@ -54,8 +54,8 @@ for i = 1:Nrotate-1
             hold on
             plot(x,y);
         end
-        pause(0.001);
     end
+    pause(0.001);
 end
 toc;
 % The last spread of angles is displayed
@@ -83,25 +83,27 @@ for i = 1:Nrotate-1
         uExit(i,j,:) = circlegaussianrelation(u0,ds);
     end
 end
-toc;
+
 %%
 % To check qualitatively with the plot above:
 disp(uExit(end,:,:))
+toc;
 % Be careful if we wanted to switch the order of for loops
 % It looked consistent with all 4 sides. 
 %% Entire scattering relation
 % Use: (Takes a while to compute)
 tic;
 uTotExit = CGscatteringrelation(Nrotate, Nangle);
-toc;
+
 % To check with prior notes I guess:
 disp(uTotExit(end,:,:))
 %%
 % To get the components, I guess just do a for loop, e.g. for x:
-xexit = zeros(Nrotate-1,Nangle-1);
-i = 1 : Nrotate-1;
-j = 1:Nangle-1;
-xexit(i,j) = uTotExit(i,j,1);
+xexit = uTotExit(:,:,1); yexit = uTotExit(:,:,2);
 disp(xexit(end,:) - uTotExit(end,:,1))
-
+%%
+% Check boundary: 
+M = xexit.^2 + yexit.^2 - 1;
+disp(norm(M(:),Inf))
+toc;
 
