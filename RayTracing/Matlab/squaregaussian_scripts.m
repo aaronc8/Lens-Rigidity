@@ -58,8 +58,8 @@ for i = 1:Nedge-1
             hold on
             plot(x,y); plot(x,-y); plot(y,x); plot(-y,x);
         end
-        pause(0.001);
     end
+    pause(0.001);
 end
 toc;
 % The last spread of angles is displayed
@@ -91,17 +91,18 @@ for i = 1:Nedge-1
         uNSEW(i,j,:) = squaregaussianrelation(u0,ds);
     end
 end
-toc;
+
 %%
 % To check qualitatively with the plot above:
 disp(uNSEW(end,:,:))
+toc;
 % Be careful if we wanted to switch the order of for loops
 % It looked consistent with all 4 sides. 
 %% Entire scattering relation
 % Use: (Takes a while to compute)
 tic;
 [uW, uN, uE, uS] = SGscatteringrelation(Nedge, Nangle);
-toc;
+
 % To check with prior notes I guess:
 disp(uN(end,:,:))
 
@@ -109,9 +110,15 @@ disp(uN(end,:,:))
 % To get the components, I guess just do a for loop, e.g. for x:
 yexit = zeros(Nedge-1,Nangle-1);
 i = 1 : Nedge-1;
-j = 1:Nangle-1;
-yexit(i,j) = uExit(i,j,2);
-disp(yexit(end,:) - uExit(end,:,2))
+j = 1 : Nangle-1;
+yexit(i,j) = uNSEW(i,j,2);
+xexit(i,j) = uNSEW(i,j,1);
+disp(yexit(end,:) - uNSEW(end,:,2))
+%%
+% Check boundary: 
+M = max(abs(xexit),abs(yexit)) - 1;
+disp(norm(M(:),Inf))
+toc;
 
 
 
