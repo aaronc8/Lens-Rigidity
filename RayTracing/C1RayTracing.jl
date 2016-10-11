@@ -31,6 +31,21 @@ function gaussianmetric(s,u)
     return dH
 end
 
+
+function identitymetric(s,u)
+  dH = zeros(length(u));
+  dH[end] = 0;
+  if length(u) == 3
+    dH[1] = cos(u[3]);
+    dH[2] = sin(u[3]);
+  end
+  if length(u) == 4
+    dH[1] = u[3];
+    dH[2]=u[4];
+  end
+  return dH
+end
+
 ###############################################################################
 
 function scatteringRelation(metric::Function,domain::Function,domaingrad::Function,u0,ds)
