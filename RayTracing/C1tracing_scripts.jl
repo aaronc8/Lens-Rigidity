@@ -16,6 +16,7 @@ circlegrad(x,y) = [2.*x, 2.*y];
 
 ### PART 1: Just for checking the ODE is setup and evolving correctly
 
+figure(1)
 for i = 1:Nrotate-1
     pause(1/Nrotate)
     clf()
@@ -69,7 +70,7 @@ end
 print(uExit[end,:])
 xexit = map(x -> x[1], uExit);
 yexit = map(x -> x[2], uExit);
-display("Check that they lie on the boundary of domain:")
+display("Check that they lie on the boundary of Circle:")
 display(circle(xexit,yexit))
 display("Max across all entries:")
 display(norm(circle(xexit,yexit)[:],Inf))
@@ -92,6 +93,7 @@ ellipsegrad(x,y) = [2*a^2.*x, 2*b^2.*y];
 
 ### PART 1: Just for checking the ODE is setup and evolving correctly
 
+figure(2)
 for i = 1:Nrotate-1
     pause(.01)
     clf()
@@ -160,7 +162,7 @@ end
 print(uExit[end,:])
 xexit = map(x -> x[1], uExit);
 yexit = map(x -> x[2], uExit);
-display("Check that they lie on the boundary of domain:")
+display("Check that they lie on the boundary of Ellipse:")
 display(ellipse(xexit,yexit))
 display("Max across all entries:")
 display(norm(ellipse(xexit,yexit)[:],Inf))
@@ -188,8 +190,9 @@ dphi = pi/Nangle;
 dtheta = 2*pi/Nrotate;
 ds = 3.0;
 
+figure(3)
 for i = 1:Nrotate-1
-    pause(.01)
+    pause(.001)
     clf()
     for j = 1:Nangle-1
         # ds = j*dphi*(Nangle-j)/Nangle;  # May not want to, so that we can see the whole evolution.
@@ -254,7 +257,94 @@ end
 print(uExit[end,:])
 xexit = map(x -> x[1], uExit);
 yexit = map(x -> x[2], uExit);
-display("Check that they lie on the boundary of domain:")
+display("Check that they lie on the boundary of G(x,y):")
+display(G(xexit,yexit))
+display("Max across all entries: (if NaN, some rays may be trapped)")
+display(norm(G(xexit,yexit)[:],Inf))
+toc()
+display("Any trapped rays: (ther are some if maxiter is less)")
+display(find(t -> t[1] == Inf, yexit))
+
+
+#####################################################################
+
+## Test with changing metric (to identity for now)
+
+### 1) Evolving the ODE on this random surface:
+Nrotate = 2^5;
+Nangle = 2^5;
+dphi = pi/Nangle;
+dtheta = 2*pi/Nrotate;
+ds = 3.0;
+
+figure(4)
+for i = 1:Nrotate-1
+    pause(.001)
+    clf()
+    for j = 1:Nangle-1
+        # ds = j*dphi*(Nangle-j)/Nangle;  # May not want to, so that we can see the whole evolution.
+
+        x = xpara(i*dtheta); y = ypara(i*dtheta);
+        v = dG(x,y);
+        # Make sure we get the right angle of the normal:
+        angle = atan(v[2]/v[1]);
+        if sign(v[1]) > 0
+          angle = angle+pi;
+        end
+        # u0 = [x,y, cos(angle + pi/2 - j*dphi), sin(angle + pi/2 - j*dphi)];
+        # ~,u = ode45(identitymetric, u0, [0.0,ds]);
+        u0 = [x,y, angle + pi/2 - j*dphi];
+        ~,u = ode45(identitymetric, u0, [0.0,ds]);
+        k = find( x -> G(x[1],x[2]) > 0, u[2:end]);
+        if !isempty(k)
+            u = u[1:k[1]+1];
+        end
+
+        # Noting how some rays don't make it out yet
+        u1 = map(z->z[1],u);
+        u2 = map(z->z[2],u);
+        plot(u1,u2);
+        ax = gca();
+        if j == 1
+          ax[:set_xlim]([-3,4]);
+          ax[:set_ylim]([-3,3]);
+          ax[:set_xlabel]("x-position");
+          ax[:set_ylabel]("y-position");
+          theta = 0:0.1:2*pi+0.1;
+          x = xpara(theta);
+          y = ypara(theta);
+          plot(x,y);
+        end
+    end
+end
+
+## Okay, now for the scattering relation:
+
+ds = 1;  # Or can make it smaller/larger?
+uExit = Array{Array}((Nrotate-1),(Nangle-1));
+tic()
+for i = 1:Nrotate-1
+    for j = 1:Nangle-1
+        # ds = 2*j*dphi*(Nangle-j)/Nangle;
+        x = xpara(i*dtheta); y = ypara(i*dtheta);
+        v = dG(x,y);
+        # Make sure we get the right angle of the normal:
+        angle = atan(v[2]/v[1]);
+        if sign(v[1]) > 0
+          angle = angle+pi;
+        end
+        # u0 = [x,y, cos(angle + pi/2 - j*dphi), sin(angle + pi/2 - j*dphi)];
+        # uExit[i,j] = scatteringRelation(identitymetric, G, dG, u0,ds);
+        u0 = [x,y, angle + pi/2 - j*dphi];
+        uExit[i,j] = scatteringRelation(identitymetric,G,dG,u0,ds);
+    end
+end
+
+# Check with the last graphic:
+print(uExit[end,:])
+xexit = map(x -> x[1], uExit);
+yexit = map(x -> x[2], uExit);
+display("Check that they lie on the boundary of G(x,y):")
 display(G(xexit,yexit))
 display("Max across all entries: (if NaN, some rays may be trapped)")
 display(norm(G(xexit,yexit)[:],Inf))
