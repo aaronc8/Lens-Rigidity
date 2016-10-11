@@ -257,7 +257,7 @@ end
 print(uExit[end,:])
 xexit = map(x -> x[1], uExit);
 yexit = map(x -> x[2], uExit);
-display("Check that they lie on the boundary of G(x,y):")
+display("Check that they lie on the boundary of G(x,y) = 0:")
 display(G(xexit,yexit))
 display("Max across all entries: (if NaN, some rays may be trapped)")
 display(norm(G(xexit,yexit)[:],Inf))
@@ -344,7 +344,7 @@ end
 print(uExit[end,:])
 xexit = map(x -> x[1], uExit);
 yexit = map(x -> x[2], uExit);
-display("Check that they lie on the boundary of G(x,y):")
+display("Check that they lie on the boundary of G(x,y) = 0:")
 display(G(xexit,yexit))
 display("Max across all entries: (if NaN, some rays may be trapped)")
 display(norm(G(xexit,yexit)[:],Inf))
