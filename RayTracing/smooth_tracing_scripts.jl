@@ -1,7 +1,7 @@
 using ODE
 using PyPlot
 using Polynomials
-include("C1RayTracing.jl")
+include("SmoothRayTracing.jl")
 
 Nrotate = 2^5;
 Nangle = 2^5;
