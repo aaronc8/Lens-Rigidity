@@ -1,5 +1,6 @@
 using ODE
 using PyPlot
+using Polynomials
 include("RayTracing.jl");
 
 Nedge = 2^5;   # number of partitions of sides.
