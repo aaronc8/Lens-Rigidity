@@ -100,9 +100,9 @@ display(norm(Xgtheta(t2range) - Xtheta(t2range), Inf))
 
 ###############################################################################
 ## Now, we have to compue the Hessian of H (called M), to be used for the Jacobian.
-# But, how to check correctness...? Check with original? ._.
-M = HamiltonianHessForcing(metric,dmetric,false);
-Mtheta = HamiltonianHessForcing(metric,dmetric,true);
+# But, how to check correctness...? Check with original? ._.  :|
+M = HamiltonianHess(metric,dmetric,false);
+Mtheta = HamiltonianHess(metric,dmetric,true);
 J0 = eye(4,4); J0theta = eye(3,3);
 Jacobian = geodesicJacobian(M,Xg,J0,sout);
 JacobianTheta = geodesicJacobian(Mtheta,Xgtheta,J0theta,souttheta);
