@@ -240,10 +240,10 @@ if theta == true
     xvel = cos(u[3]);
     yvel = sin(u[3]);
     # H_theta,x:
-    Mtheta[1] = 0.5.*xvel.*grad[1];
-    Mtheta[2] = 0.5.*yvel.*grad[1];
-    Mtheta[4] = 0.5.*xvel.*grad[2];
-    Mtheta[5] = 0.5.*yvel.*grad[2];
+    Mtheta[1] = 0.5.*xvel.*grad[1]./c;
+    Mtheta[2] = 0.5.*yvel.*grad[1]./c;
+    Mtheta[4] = 0.5.*xvel.*grad[2]./c;
+    Mtheta[5] = 0.5.*yvel.*grad[2]./c;
     # H_x,x
     g21 = grad[1]+grad[2];
     Mtheta[3] = -(xvel.*g21 + yvel./(2*c.^2).*grad[1].^2 - xvel.*grad[1].*grad[2]./(2*c.^2))./(2*c);
