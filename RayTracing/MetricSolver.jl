@@ -189,7 +189,7 @@ end
 
 ###############################
 
-function HamiltonianHessForcing(g::Function,dg::Function, theta)
+function HamiltonianHess(g::Function,dg::Function, theta)
 # Form the Hessian (it is almost but not quite the Hessian) of H to
 # Use to compute/solve for the Jacobian of the geodesic. (This is M)
 
