@@ -51,7 +51,7 @@ uWt, uSt, uEt, uNt = SGscatteringrelation(true,dHtheta,Nedge,Nangle,ds);
 toc();  # Holy crap I suck this is so slow compared to the original ... due to eval-ing interpolations??
 
 tic();
-uW, uS, uE, uN = SGscatteringrelation(false,dH,Nedge,Nangle,ds);
+uW, uS, uE, uN = SGscatteringrelation(false,dH,Nedge,Nangle,ds);  # Had some issues with least squares solving, dt~eps.
 toc();  # and even slower .....
 
 tic();
