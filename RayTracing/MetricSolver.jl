@@ -8,11 +8,12 @@ metric(x,y) = itp[x,y];
 gradmetric(x,y) = gradient(itp,x,y);  # More efficient to use "gradient!" ?
 
 ## BSplines Approach: (Needs rescaling.....)
-# itp = interpolate(cxy,BSpline(Quadratic(Flat())), OnGrid())
+## Requires the gridpoints be ODD? So that there's even number on right and left of 0.
+# itp = interpolate(cxy,BSpline(Cubic(Natural())), OnGrid())
 # Nx,Ny = size(cxy);
 # # Renormalize to a unit interval in both dimensions, too:
-# metric(x,y) = itp[x*Nx, y*Ny];
-# gradmetric(x,y) = gradient(itp, x*Nx, y*Ny);
+# metric(x,y) = itp[0.5*x*(Nx-1) + 0.5*(Nx+1) , 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+# gradmetric(x,y) = gradient(itp, 0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1));
 
 # Check the domain, but just return:
 return metric,gradmetric;
