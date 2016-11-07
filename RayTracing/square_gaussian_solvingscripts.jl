@@ -18,12 +18,12 @@ ds = 2;
 ## Generating the metric based on grid points. For now, just discretize the exact one.
 ## Then, all the things should look / behave close to the original things we've done.
 
-x = linspace(-1,1,Nedge);
+x = -1:2/Nedge:1;
 y = x';
 c2xy = exp(x.^2 .+ y.^2);
 # c2xy = ones(Nedge,Nedge);
 
-knots = ([x for x = linspace(-1,1,Nedge)], [y for y = linspace(-1,1,Nedge)]);
+knots = ([x for x = -1:2/Nedge:1], [y for y = -1:2/Nedge:1]);
 metric,dmetric = generateMetric(knots,c2xy);
 # Can check surf(x,y,cxy) just to be safe....Also
 display(norm(c2xy-metric(x,y),Inf))
@@ -48,11 +48,11 @@ dH = makeHamiltonian(metric,dmetric,false);
 ## Check working with scattering relation:
 tic();
 uWt, uSt, uEt, uNt = SGscatteringrelation(true,dHtheta,Nedge,Nangle,ds);
-toc();  # Holy crap I suck this is so slow compared to the original ... due to eval-ing interpolations??
+toc();  # Holy crap much slower ... due to eval-ing interpolations??
 
 tic();
-uW, uS, uE, uN = SGscatteringrelation(false,dH,Nedge,Nangle,ds);  # Had some issues with least squares solving, dt~eps.
-toc();  # and even slower .....
+uW, uS, uE, uN = SGscatteringrelation(false,dH,Nedge,Nangle,ds);
+toc();  # and even slower ..... Also, some bugs if least squares fails (matrix gets singular)
 
 tic();
 uWexact, uSexact, uEexact, uNexact = SGscatteringrelation(true,gaussianmetrictheta,Nedge,Nangle,ds);
