@@ -6,8 +6,9 @@ using Interpolations
 include("RayTracing.jl");
 include("MetricSolver.jl");
 
-Nedge = 2^5;   # number of partitions of sides.
-Nangle = 2^5;   # number of partitions of angle.
+N = 5;
+Nedge = 2^N;   # number of partitions of sides.
+Nangle = 2^N;   # number of partitions of angle.
 dphi = pi/Nangle;   # This needs to be taken better care of
 dl = 2/Nedge;
 ds = 2;
@@ -18,15 +19,29 @@ ds = 2;
 ## Generating the metric based on grid points. For now, just discretize the exact one.
 ## Then, all the things should look / behave close to the original things we've done.
 
-x = -1:2/Nedge:1;
-y = x';
-c2xy = exp(x.^2 .+ y.^2);
+
+x = -2:1/Nedge:2;
+y = x;
+cxy = zeros(length(x),length(x));
+cxy[Nedge+1:3*Nedge+1, Nedge+1:3*Nedge+1] = exp(0.5.*x[Nedge+1 : 3*Nedge+1]'.^2 .+ 0.5.*y[Nedge+1 : 3*Nedge+1].^2);
+# For a circle - see which points are inside and then assign a value if it is inside.
+gradcxy,hesscxy = GradHess(cxy,-2,2);
+cxy = cxy[Nedge+1:3*Nedge+1, Nedge+1:3*Nedge+1]
+
+
+
 # c2xy = ones(Nedge,Nedge);
 
-knots = ([x for x = -1:2/Nedge:1], [y for y = -1:2/Nedge:1]);
-metric,dmetric = generateMetric(knots,c2xy);
+# knots = ([x for x = -1:2/Nedge:1], [y for y = -1:2/Nedge:1]);
+# metric,dmetric = generateMetric(knots,cxy);
+cspd,gradcspd,hesscspd = generateMetric(cxy,gradcxy,hesscxy);
+
+x = -1:2/Nedge:1;   # For the actual grid ...
+y = x;
+cxy = exp(0.5.*(x'.^2 .+ y.^2));
 # Can check surf(x,y,cxy) just to be safe....Also
-display(norm(c2xy-metric(x,y),Inf))
+display("Check the approximation agrees with the original metric:")
+display(norm(cxy-cspd(x,y),Inf))
 
 # If BSplines, The square is from [1/Nx, 1] x [1/Ny,1] so we need to rescale:
 # gpre,dgpre = generateMetric(cxy);
@@ -37,6 +52,8 @@ display(norm(c2xy-metric(x,y),Inf))
 ###############################################################################
 # Construct the Hamiltonian system using the interpolated metric:
 # How to get Julia to output a function?? If dH is done manually, works fine...
+metric(x,y) = cspd(x,y).^2;
+dmetric(x,y) = 2*cspd(x,y).*gradcspd(x,y);
 dHtheta = makeHamiltonian(metric,dmetric,true);  # Or:
 dH = makeHamiltonian(metric,dmetric,false);
 ## And checked its ray evolution is okay now
@@ -48,7 +65,7 @@ dH = makeHamiltonian(metric,dmetric,false);
 ## Check working with scattering relation:
 tic();
 uWt, uSt, uEt, uNt = SGscatteringrelation(true,dHtheta,Nedge,Nangle,ds);
-toc();  # Holy crap much slower ... due to eval-ing interpolations??
+toc();  # Holy crap much slower  ... due to eval-ing interpolations??
 
 tic();
 uW, uS, uE, uN = SGscatteringrelation(false,dH,Nedge,Nangle,ds);
@@ -101,8 +118,9 @@ display(norm(Xgtheta(t2range) - Xtheta(t2range), Inf))
 ###############################################################################
 ## Now, we have to compue the Hessian of H (called M), to be used for the Jacobian.
 # But, how to check correctness...? Check with original? ._.  :|
-M = HamiltonianHess(metric,dmetric,false);
-Mtheta = HamiltonianHess(metric,dmetric,true);
-J0 = eye(4,4); J0theta = eye(3,3);
+# M = HamiltonianHess(metric,dmetric,false);
+# Mtheta = HamiltonianHess(metric,dmetric,true);
+M = HamiltonianHess(cspd,gradcspd,hesscspd);
+J0 = eye(4,4); # J0theta = eye(3,3);
 Jacobian = geodesicJacobian(M,Xg,J0,sout);
 JacobianTheta = geodesicJacobian(Mtheta,Xgtheta,J0theta,souttheta);
