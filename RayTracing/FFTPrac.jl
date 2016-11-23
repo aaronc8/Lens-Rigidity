@@ -23,20 +23,19 @@ display(dsin-exactdsin[1:end-1])
 n=3; N = 2^n; W = 2^(n-1); a = -2; b = 2;
 xx = a:(b-a)/N:b;    # xx = xx./(b-a);
 yy = cos(2*pi*xx);
-sinfft = fft(yy[1:end-1]);
-shiftsinfft = fftshift(sinfft);
-dsinshift = shiftsinfft;
+cosfft = fft(yy[1:end-1]);
+shiftcosfft = fftshift(cosfft);
+dcosshift = shiftcosfft;
 
 for k = -W:1:W-1
-    dsinshift[k+W+1] = shiftsinfft[k+W+1]*2*1im*pi*k/(b-a);
+    dcosshift[k+W+1] = shiftcosfft[k+W+1]*2*1im*pi*k/(b-a);
 # for k = W:-1:-W+1
 #     dsinshift(-k+N/2+1) = shiftsinfft(-k+N/2+1)*2*1i*pi*k/(b-a);
 end
-dsin = ifft(ifftshift(dsinshift));
-exactdsin = -2*pi*sin(2*pi*xx);
+dsin = ifft(ifftshift(dcosshift));
+exactdcos = -2*pi*sin(2*pi*xx);
 display("Slight Generalization to any [a,b]")
-display(dsin-exactdsin[1:end-1])
-
+display(dsin-exactdcos[1:end-1])
 
 ###########################################
 ## 2-D case: (Basic for now)(Set up to be able to change box or pts)
