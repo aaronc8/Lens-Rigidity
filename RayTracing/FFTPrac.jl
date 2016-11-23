@@ -86,7 +86,7 @@ display(norm(dprod[:,:,2]-exactgrad[1:end-1,1:end-1,2],Inf))
 
 
 ####################################################
-## Practice + Storage of fft code in Ray Tracing:
+## Practice + Storage of fft code in MetricSolver:
 
 ## Check without extending the domain:
 N = 5;
