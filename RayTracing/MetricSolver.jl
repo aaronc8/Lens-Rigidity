@@ -440,6 +440,7 @@ function geodesicJacobian(M::Function,X::Function,J0,sout)
 # Solve for the Jacobian matrix of geodesic w.r.t. initial condition.
 # J0 is usually identity, but it could be something else (e.g. "B" if broken)
 # Since we have the Group Property, I don't think we need to specify initial s?
+# Nor do we need J to be a function of X because it's inherent in M(X).
 
 function F(s,J)
   n = length(J0[1,:]);
@@ -467,9 +468,42 @@ end
 
 #################################
 
-# function linearMismatch()
-# # Compute the integral of the mismatch of geodesic evolution, the K_n^i
-#
-# end
+function dVfrechet(cspd, dcspd, lambda, dlambda)
+# Compute the frechet derivative of the Hamiltonian flow
+function dVdg(X)
+  dV = zeros(4,1);
+  c = cspd(X[1],X[2]);
+  dc = dcspd(X[1],X[2]);
+  L = lambda(X[1],X[2]);
+  dL = dlambda(X[1],X[2]);
+
+  dV[1] = 2.0.*c.*L.*X[3];
+  dV[2] = 2.0.*c.*L.*X[4];
+  dV[3] = -(X[3].^2 + X[4].^2).*(L.*dc[1] + c.*dL[1]);
+  dV[4] = -(X[3].^2 + X[4].^2).*(L.*dc[2] + c.*dL[2]);
+  return dV;
+end
+return dVdg;
+end
+
+#################################
+
+function linearMismatch(J,dV,Xg,tf)
+# Compute the integral of the mismatch of geodesic evolution, the K_n^i.
+s = 0:tf/2^4:tf; h = tf/2^4; n = 2^4;   # This way 2^(-16) ~ 1e-5 error with Simpson.
+# Kni = J(tf-0)*dV(Xg(0)) + J(0)*dV(Xg(tf));  # Endpoints of Simpson.
+Kni = zeros(4,1);
+
+for j = 1:2:2^4
+  A = J(tf)*(J(s[j])\dV(Xg(s[j])));
+  B = 4*J(tf)*(J(s[j+1])\dV(Xg(s[j+1])));
+  C = J(tf)*(J(s[j+2])\dV(Xg(s[j+2])));
+  Kni = Kni + A + B + C;
+end
+Kni = Kni*h/3;
+
+return Kni;
+
+end
 
 ##################################
