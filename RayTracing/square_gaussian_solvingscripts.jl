@@ -207,5 +207,14 @@ plot(threevar[1,:][1][:], threevar[2,:][1][:], marker = "x", color = "g");
 # Mtheta = HamiltonianHess(metric,dmetric,true);
 M = HamiltonianHess(cspd,gradcspd,hesscspd);
 J0 = eye(4,4); # J0theta = eye(3,3);
-Jacobian = geodesicJacobian(M,Xg,J0,sout);
+Jacobian = geodesicJacobian(M,Xg,J0,sout);    # It is outputted as a 4x4, not a 16x1.
 # JacobianTheta = geodesicJacobian(Mtheta,Xgtheta,J0theta,souttheta);
+lambda(x,y) = 1;   # Just to see dV is working / computing something.
+dlambda(x,y) = zeros(2,1);
+
+dVdg = dVfrechet(cspd,gradcspd,lambda,dlambda);
+display(dVdg([0,1,0.25,1]))   #Just to see it's working
+
+## And applying it to find the mismatch:
+Kni = linearMismatch(Jacobian,dVdg,Xg,sout);
+display(Kni)
