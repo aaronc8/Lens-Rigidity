@@ -131,7 +131,8 @@ toc();  # Holy crap much slower  ... due to eval-ing interpolations??
 
 tic();
 uW, uS, uE, uN = SGscatteringrelation(false,dH,Nedge,Nangle,ds);
-toc();  # and even slower ..... Also, some bugs if least squares fails (matrix gets singular)
+toc();  # and even slower ...  Also, some bugs if least squares fails (matrix gets singular)
+# It is not as slow if the interpolant is better maybe because the adaptive stepping goes better.
 
 tic();
 uWexact, uSexact, uEexact, uNexact = SGscatteringrelation(true,gaussianmetrictheta,Nedge,Nangle,ds);
@@ -193,8 +194,8 @@ x = -1:0.1:1;
 y = ones(length(x),1);
 plot(x,y); plot(x,-y); plot(y,x); plot(-y,x);
 plot(fourvar[1,:][1][:] - fourexact[1,:][1][:], fourvar[2,:][1][:] - fourexact[2,:][1][:], marker = "+"); # is a point lol.
-plot(fourvar[1,:][1][:], fourvar[2,:][1][:], linestyle = "-", marker = "o");
-plot(threevar[1,:][1][:], threevar[2,:][1][:], marker = "x");
+plot(fourvar[1,:][1][:], fourvar[2,:][1][:], marker = "o", color = "r");
+plot(threevar[1,:][1][:], threevar[2,:][1][:], marker = "x", color = "g");
 
 
 ## This lets us use it for the integral for K_n^i now.
