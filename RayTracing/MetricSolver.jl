@@ -258,7 +258,7 @@ end
 ## given from the original ODE evolution...
 
 u1 = u[k-1]; u2 = u[k];
-s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1;
+s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1; sout = s1+0.5*spread;
 
 if spread <= 1e-4
   if length(u1)  == 3
@@ -506,4 +506,54 @@ return Kni;
 
 end
 
-##################################
+#####################################
+## Put all the Kni together.
+
+function geodesicMismatch(cn,gradcn,hesscn,dg,graddg,Nedge,Nangle,ds)
+# Gather the exit data mismatch for the square problem.
+metric(x,y) = cn(x,y).^2; dmetric(x,y) = 2.0.*cn(x,y).*gradcn(x,y);
+
+dH = makeHamiltonian(metric,dmetric,false);
+dVdg = dVfrechet(cn,gradcn,dg,graddg);
+
+M = HamiltonianHess(cn,gradcn,hesscn);
+J0 = eye(4,4);
+
+dl = 2/Nedge;
+dphi = pi/Nangle;
+KW = Array{Array}((Nedge-1),(Nangle-1));
+KN = Array{Array}((Nedge-1),(Nangle-1));
+KS = Array{Array}((Nedge-1),(Nangle-1));
+KE = Array{Array}((Nedge-1),(Nangle-1));
+# For the cells, each row is a point on the boundary edge and each collumn is
+# an angle of incidence.
+
+  for i = 1:Nedge-1
+      ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
+      for j = 1:Nangle-1
+          uW0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   # Only for left edge!
+          XW,sWout = generatePath(dH, uW0, ds);
+          JW = geodesicJacobian(M,XW,J0,sWout);
+          KW[i,j] = linearMismatch(JW,dVdg,XW,sWout);
+
+          uS0 = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];   # Only for bottom edge!
+          XS,sSout = generatePath(dH, uS0, ds);
+          JS = geodesicJacobian(M,XS,J0,sSout);
+          KS[i,j] = linearMismatch(JS,dVdg,XS,sSout);
+
+          uE0 = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];   # Only for right edge!
+          XE,sEout = generatePath(dH, uE0, ds);
+          JE = geodesicJacobian(M,XE,J0,sEout);
+          KE[i,j] = linearMismatch(JE,dVdg,XE,sEout);
+
+          uN0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   # Only for top edge!
+          XN,sNout = generatePath(dH, uN0, ds);
+          JN = geodesicJacobian(M,XN,J0,sNout);
+          KN[i,j] = linearMismatch(JN,dVdg,XN,sNout);
+
+      end
+  end
+
+return KW,KS,KE,KN;
+
+end
