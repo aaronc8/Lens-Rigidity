@@ -84,24 +84,24 @@ function generateMetric(knots,cxy,dcxy,d2cxy)
 
 ## BSplines Approach: (Needs a lot of rescaling.....)
 ## Requires the gridpoints be Odd? So that there's even number on right and left of 0.
-c = interpolate(cxy,BSpline(Quadratic(Natural())), OnGrid())
+c = interpolate(cxy,BSpline(Cubic(Natural())), OnGrid())
 Nx,Ny = size(cxy);
 # Renormalize to a unit interval in both dimensions, too:
 cspd(x,y) = c[0.5*x*(Nx-1) + 0.5*(Nx+1) , 0.5*y*(Ny-1) + 0.5*(Ny+1)];
 
-dcdx = interpolate(dcxy[:,:,1],BSpline(Quadratic(Natural())),OnGrid());
+dcdx = interpolate(dcxy[:,:,1],BSpline(Cubic(Natural())),OnGrid());
 gradx(x,y) = dcdx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)]
-dcdy = interpolate(dcxy[:,:,2],BSpline(Quadratic(Natural())),OnGrid());
+dcdy = interpolate(dcxy[:,:,2],BSpline(Cubic(Natural())),OnGrid());
 grady(x,y) = dcdy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
 gradcspd(x,y) = [gradx(x,y),grady(x,y) ];
 
-d2cdxx = interpolate(d2cxy[:,:,1,1],BSpline(Quadratic(Natural())),OnGrid());
+d2cdxx = interpolate(d2cxy[:,:,1,1],BSpline(Cubic(Natural())),OnGrid());
 hessxx(x,y) = d2cdxx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-d2cdxy = interpolate(d2cxy[:,:,1,2],BSpline(Quadratic(Natural())),OnGrid());
+d2cdxy = interpolate(d2cxy[:,:,1,2],BSpline(Cubic(Natural())),OnGrid());
 hessxy(x,y) = d2cdxy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-d2cdyx = interpolate(d2cxy[:,:,2,1],BSpline(Quadratic(Natural())),OnGrid());
+d2cdyx = interpolate(d2cxy[:,:,2,1],BSpline(Cubic(Natural())),OnGrid());
 hessyx(x,y) = d2cdyx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-d2cdyy = interpolate(d2cxy[:,:,2,2],BSpline(Quadratic(Natural())),OnGrid());
+d2cdyy = interpolate(d2cxy[:,:,2,2],BSpline(Cubic(Natural())),OnGrid());
 hessyy(x,y) = d2cdyy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
 
 hesscspd(x,y) = [hessxx(x,y) hessxy(x,y) ; hessyx(x,y) hessyy(x,y)];
@@ -454,7 +454,8 @@ function Jacobian(t)
   Jac = zeros(size(J0));
   for k = 1:length(J0)   # Maybe Interpolations.jl can actually interpolate vector valued fns, but not sure, thought it failed before.
     Jcomp = map(a -> a[k], J);
-    itpk = interpolate(knots,Jcomp,Gridded(Linear()));   # Just use knots, simpler, o.o
+    itpk = interpolate(knots,Jcomp,Gridded(Linear()));   # Just use knots + linear, simpler, o.o
+    # IF we want to do a better interpolation:
     Jac[k] = itpk[t];
   end
   return Jac;
