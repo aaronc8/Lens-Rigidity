@@ -171,7 +171,7 @@ display(norm(max(abs(xexit - xexact),abs(yexit-yexact))[:], Inf))
 ## Next part: compute the path interpolants: e.g. X_g(t) given X0.
 ## Just output s_exit because we're interpolating all points from 0 to exit.
 # One example:
-x0 = -1.0; y0 = -0.75; a0 = -pi/6;
+x0 = 1.0; y0 = -0.5; a0 = -5*pi/6;
 Xg,sout = generatePath(dH, [x0,y0,cos(a0),sin(a0)], ds);
 Xgtheta,souttheta = generatePath(dHtheta, [x0,y0,a0], ds);
 Xexact,sexact = generatePath(gaussianmetric, [x0,y0,cos(a0),sin(a0)], ds);
@@ -218,3 +218,12 @@ display(dVdg([0,1,0.25,1]))   #Just to see it's working
 ## And applying it to find the mismatch:
 Kni = linearMismatch(Jacobian,dVdg,Xg,sout);
 display(Kni)
+
+
+###################################################
+# Put it all together to get all the Kni:
+
+KW,KS,KE,KN = geodesicMismatch(cspd,gradcspd,hesscspd,lambda,dlambda,Nedge,Nangle,ds);
+## Since doing with just dg = identity, the result should be very close still
+## when the geodesics are short, i.e. in the corners of the matrix. Near Endpoints
+## and only when theta is near 0 or pi. 
