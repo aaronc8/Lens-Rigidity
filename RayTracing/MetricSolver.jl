@@ -1,6 +1,6 @@
 ## Functions used to solve for the Riemannian Metric.
 
-function GradHess(cxy,p0,pf)
+function GradHessFFT(cxy,p0,pf)
 ## Solve for the derivatives of just c with fft. We can square c or do whatever
 ## to it from there.
 
@@ -40,13 +40,47 @@ function GradHess(cxy,p0,pf)
   # return fftgradcxy,ffthesscxy
 end
 
-function generateMetric(cxy,dcxy,d2cxy)
-# Takes the computed values of cxy at (x,y) ∈ knots and interpolates.
+#################################################
 
-# c = interpolate(knots, cxy, Gridded(Linear()));
-# metric(x,y) = itp[x,y];
-# gradmetric(x,y) = gradient(itp,x,y);  # More efficient to use "gradient!" ?
-# hessmetric(x,y) = zeros(2,2);
+function GradHessFinDiff(cxy)
+# For derivatives, an alternative is to just use the interior points, too.
+
+Nedge = length(cxy[:,1]) - 1;
+gradcxy = zeros(Nedge+1,Nedge+1,2);
+hesscxy = zeros(Nedge+1,Nedge+1,2,2);
+
+k = 2:Nedge;
+
+gradcxy[:,k,2] = (Nedge/4).*(cxy[:,k+1] - cxy[:,k-1]);
+gradcxy[:,1,2] = (Nedge/4).*(-3.0.*cxy[:,1] + 4.0.*cxy[:,2] - cxy[:,3]);
+gradcxy[:,end,2] = (-Nedge/4).*(-3.0.*cxy[:,end] + 4.0.*cxy[:,end-1] - cxy[:,end-2]);   #####
+gradcxy[k,:,1] = (Nedge/4).*(cxy[k+1,:] - cxy[k-1,:]);
+gradcxy[1,:,1] = (Nedge/4).*(-3.0.*cxy[1,:] + 4.0.*cxy[2,:] - cxy[3,:]);
+gradcxy[end,:,1] = (-Nedge/4).*(-3.0.*cxy[end,:] + 4.0.*cxy[end-1,:] - cxy[end-2,:]);   #####
+
+# For Hessian, just reuse the gradient this time since it uses cxy pts.
+hesscxy[:,k,1,2] = (Nedge/4).*(gradcxy[:,k+1,1] - gradcxy[:,k-1,1]);
+hesscxy[:,1,1,2] = (Nedge/4).*(-3.0.*gradcxy[:,1,1] + 4.0.*gradcxy[:,2,1] - gradcxy[:,3,1]);
+hesscxy[:,end,1,2] = (-Nedge/4).*(-3.0.*gradcxy[:,end,1] + 4.0.*gradcxy[:,end-1,1] - gradcxy[:,end-2,1]);
+hesscxy[k,:,1,1] = (Nedge/4).*(gradcxy[k+1,:,1] - gradcxy[k-1,:,1]);
+hesscxy[1,:,1,1] = (Nedge/4).*(-3.0.*gradcxy[1,:,1] + 4.0.*gradcxy[2,:,1] - gradcxy[3,:,1]);
+hesscxy[end,:,1,1] = (-Nedge/4).*(-3.0.*gradcxy[end,:,1] + 4.0.*gradcxy[end-1,:,1] - gradcxy[end-2,:,1]);
+
+hesscxy[:,k,2,2] = (Nedge/4).*(gradcxy[:,k+1,2] - gradcxy[:,k-1,2]);
+hesscxy[:,1,2,2] = (Nedge/4).*(-3.0.*gradcxy[:,1,2] + 4.0.*gradcxy[:,2,2] - gradcxy[:,3,2]);
+hesscxy[:,end,2,2] = (-Nedge/4).*(-3.0.*gradcxy[:,end,2] + 4.0.*gradcxy[:,end-1,2] - gradcxy[:,end-2,2]);
+hesscxy[k,:,2,1] = (Nedge/4).*(gradcxy[k+1,:,2] - gradcxy[k-1,:,2]);
+hesscxy[1,:,2,1] = (Nedge/4).*(-3.0.*gradcxy[1,:,2] + 4.0.*gradcxy[2,:,2] - gradcxy[3,:,2]);
+hesscxy[end,:,2,1] = (-Nedge/4).*(-3.0.*gradcxy[end,:,2] + 4.0.*gradcxy[end-1,:,2] - gradcxy[end-2,:,2]);
+
+return gradcxy,hesscxy;
+
+end
+
+###################################################
+
+function generateMetric(knots,cxy,dcxy,d2cxy)
+# Takes the computed values of cxy at (x,y) ∈ knots and interpolates.
 
 ## BSplines Approach: (Needs a lot of rescaling.....)
 ## Requires the gridpoints be Odd? So that there's even number on right and left of 0.
@@ -74,6 +108,25 @@ hesscspd(x,y) = [hessxx(x,y) hessxy(x,y) ; hessyx(x,y) hessyy(x,y)];
 
 # Check the domain, but just return:
 return cspd,gradcspd,hesscspd;
+
+
+## Knotted Approach:
+# c = interpolate(knots, cxy, Gridded(Linear()));
+# cspd(x,y) = c[x,y];
+#
+# # gradmetric(x,y) = gradient(itp,x,y);
+# dcdx = interpolate(knots,dcxy[:,:,1],Gridded(Linear()));
+# dcdy = interpolate(knots,dcxy[:,:,2],Gridded(Linear()));
+# gradcspd(x,y) = [dcdx[x,y],dcdy[x,y]];
+#
+#
+# # hessmetric(x,y) = zeros(2,2);
+# d2cdx2 = interpolate(knots,d2cxy[:,:,1,1],Gridded(Linear()));
+# d2cdxy = interpolate(knots,d2cxy[:,:,1,2],Gridded(Linear()));
+# d2cdyx = interpolate(knots,d2cxy[:,:,2,1],Gridded(Linear()));
+# d2cdy2 = interpolate(knots,d2cxy[:,:,2,2],Gridded(Linear()));
+# hesscspd(x,y) = [d2cdx2[x,y],d2cdxy[x,y],d2cdyx[x,y],d2cdy2[x,y]];
+# return cspd,gradcspd,hesscspd;
 
 end
 
@@ -385,12 +438,13 @@ end
 
 function geodesicJacobian(M::Function,X::Function,J0,sout)
 # Solve for the Jacobian matrix of geodesic w.r.t. initial condition.
-# J0 is usually identity, but it could be something else (e.g. B if broken)
+# J0 is usually identity, but it could be something else (e.g. "B" if broken)
 # Since we have the Group Property, I don't think we need to specify initial s?
+
 function F(s,J)
   n = length(J0[1,:]);
-  J = reshape(J,n,n);
-  return (M(X(s))*J)[:];
+  J = reshape(J,n,n);   # If already square, does nothing.
+  return (M(X(s))*J)[:];   # This is the RHS of the ODE for J, also in vector form.
 end
 
 s,J = ode45(F,J0[:],[0.0,sout]);
@@ -398,12 +452,11 @@ knots = (s,);
 
 function Jacobian(t)
   Jac = zeros(size(J0));
-  for k = 1:length(J0)
+  for k = 1:length(J0)   # Maybe Interpolations.jl can actually interpolate vector valued fns, but not sure, thought it failed before.
     Jcomp = map(a -> a[k], J);
-    itpk = interpolate(knots,Jcomp,Gridded(Linear()));
+    itpk = interpolate(knots,Jcomp,Gridded(Linear()));   # Just use knots, simpler, o.o
     Jac[k] = itpk[t];
   end
-
   return Jac;
 end
 
