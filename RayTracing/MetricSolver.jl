@@ -225,7 +225,7 @@ end
 u1 = u[k-1]; u2 = u[k];
 s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1; sout = s1+0.5*spread;
 
-if spread <= 1e-4
+if spread <= 1e-4 || norm(u1 - u2, 2) <= 1e-4
   if length(u1)  == 3
     return Xgtheta,sout;
   end
@@ -241,7 +241,14 @@ end
 dt = spread/4.0;
 tspan = 0:dt:spread;
 # sp,up = ODE.ode45(gaussianmetric,u1,tspan);
-s,u = ode45(metric,u1,tspan);    # tspan only ensures at least 5 pts
+s,u = ode45(metric,u1,tspan,points=:specified);    # tspan only ensures at least 5 pts
+## Need to find the times because otherwise, Least Squares is singular.
+# k2 = find(x -> x == tspan[2],s);
+# k3 = find(x -> x == tspan[3],s);
+# k4 = find(x -> x == tspan[4],s);
+# index = [1 k2[1] k3[1] k4[1] length(s)];
+
+# up = u[index]; sp = s[index] + s1;
 up = u[1:5]; sp = s[1:5] + s1;
 up[end] = u2; sp[end] = s2;
 
@@ -680,8 +687,9 @@ b = zeros(16*(Nedge-1)*(Nangle-1));  # Will reshape to length of M's column.
           XE,sEout = generatePath(bdy, dH, uE0, ds);
           JE = geodesicJacobian(M,XE,J0,sEout);
           RayData = linearMismatch(JE,XE,sout[rowcount],cn,gradcn,Nedge);
-          A[4*(rowcount-1)+1:4*rowcount, :] = RayData;
-          b[4*(rowcount-1)+1:4*rowcount] = XE(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount];
+          L2err = norm(XE(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount],2)^2;
+          A[4*(rowcount-1)+1:4*rowcount, :] = RayData./L2err;
+          b[4*(rowcount-1)+1:4*rowcount] = (XE(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount])./L2err;
           rowcount = rowcount + 1;
       end
   end
@@ -692,8 +700,9 @@ b = zeros(16*(Nedge-1)*(Nangle-1));  # Will reshape to length of M's column.
           XN,sNout = generatePath(bdy, dH, uN0, ds);
           JN = geodesicJacobian(M,XN,J0,sNout);
           RayData = linearMismatch(JN,XN,sout[rowcount],cn,gradcn,Nedge);
-          A[4*(rowcount-1)+1:4*rowcount, :] = RayData;
-          b[4*(rowcount-1)+1:4*rowcount] = XN(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount];
+          L2err = norm(XN(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount],2)^2;
+          A[4*(rowcount-1)+1:4*rowcount, :] = RayData./L2err;
+          b[4*(rowcount-1)+1:4*rowcount] = (XN(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount])./L2err;
           rowcount = rowcount + 1;
       end
     end
@@ -704,8 +713,9 @@ b = zeros(16*(Nedge-1)*(Nangle-1));  # Will reshape to length of M's column.
           XW,sWout = generatePath(bdy, dH, uW0, ds);
           JW = geodesicJacobian(M,XW,J0,sWout);
           RayData = linearMismatch(JW,XW,sout[rowcount],cn,gradcn,Nedge);
-          A[4*(rowcount-1)+1:4*rowcount, :] = RayData;
-          b[4*(rowcount-1)+1:4*rowcount] = XW(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount];
+          L2err = norm(XW(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount],2)^2;
+          A[4*(rowcount-1)+1:4*rowcount, :] = RayData./L2err;
+          b[4*(rowcount-1)+1:4*rowcount] = (XW(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount])./L2err;
           rowcount = rowcount + 1;
         end
     end
@@ -716,8 +726,9 @@ b = zeros(16*(Nedge-1)*(Nangle-1));  # Will reshape to length of M's column.
           XS,sSout = generatePath(bdy, dH, uS0, ds);
           JS = geodesicJacobian(M,XS,J0,sSout);
           RayData = linearMismatch(JS,XS,sout[rowcount],cn,gradcn,Nedge);
-          A[4*(rowcount-1)+1:4*rowcount, :] = RayData;
-          b[4*(rowcount-1)+1:4*rowcount] = XS(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount];
+          L2err = norm(XS(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount],2)^2;
+          A[4*(rowcount-1)+1:4*rowcount, :] = RayData./L2err;
+          b[4*(rowcount-1)+1:4*rowcount] = (XS(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount])./L2err;
           rowcount = rowcount + 1;
       end
   end
