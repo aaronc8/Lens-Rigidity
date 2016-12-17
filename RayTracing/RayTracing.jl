@@ -92,6 +92,7 @@ else
 end
 
   if maxiter >= 1000*scaling   # Suspect trapped rays.
+    uf = u[end];
     for k = 1:length(uf)
       uf[k]=Inf;
     end
