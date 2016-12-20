@@ -90,82 +90,75 @@ function generateMetric(knots,cxy::Array{Float64,2},
                               dcxy::Array{Float64,3},
                               d2cxy::Array{Float64,4};
                               interpType::String="linear")
-  # Takes the computed values of cxy at (x,y) ∈ knots and interpolates.
-  # input : knots:  physical points in which the values of
-  #                 the functions are defined
-  #         cxy:    Array containing the value of the wavespeed
-  #                 at the points defined by knots
-  #         dcxy:   Array containing the value of the gradient of
-  #                 the wavespeed at the points defined by knots
-  #         d2cxy:  Array containing the value of the Hessian of
-  #                 the wavespeed at the points defined by knots
-  #         interpType: type of interpolation
-  # outputs: cspd:     function that interpolated the wavespeed
-  #          gradcspd: function that interpolated the gradient of
-  #                    the wavespeed
-  #          hesscspd: function that interpolated the hessian of
-  #                    the wavespeed
+# Takes the computed values of cxy at (x,y) ∈ knots and interpolates.
+# input : knots:  physical points in which the values of
+#                 the functions are defined
+#         cxy:    Array containing the value of the wavespeed
+#                 at the points defined by knots
+#         dcxy:   Array containing the value of the gradient of
+#                 the wavespeed at the points defined by knots
+#         d2cxy:  Array containing the value of the Hessian of
+#                 the wavespeed at the points defined by knots
+#         interpType: type of interpolation
+# outputs: cspd:     function that interpolated the wavespeed
+#          gradcspd: function that interpolated the gradient of
+#                    the wavespeed
+#          hesscspd: function that interpolated the hessian of
+#                    the wavespeed
 
 ### For other domains, if BSplines, may need the length of box it is contained in
 ### due to the BSpline being off the knots.
 
-# Takes the computed values of cxy at (x,y) ∈ knots and interpolates.
-
-## BSplines Approach: (Needs a lot of rescaling.....)
-## Requires the gridpoints be Odd? So that there's even number on right and left of 0.
-# c = interpolate(cxy,BSpline(Cubic(Natural())), OnGrid())
-# Nx,Ny = size(cxy);
-# # Renormalize to a unit interval in both dimensions, too:
-# cspd(x,y) = c[0.5*x*(Nx-1) + 0.5*(Nx+1) , 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-#
-# dcdx = interpolate(dcxy[:,:,1],BSpline(Cubic(Natural())),OnGrid());
-# gradx(x,y) = dcdx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)]
-# dcdy = interpolate(dcxy[:,:,2],BSpline(Cubic(Natural())),OnGrid());
-# grady(x,y) = dcdy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-# gradcspd(x,y) = [gradx(x,y),grady(x,y) ];
-#
-# d2cdxx = interpolate(d2cxy[:,:,1,1],BSpline(Cubic(Natural())),OnGrid());
-# hessxx(x,y) = d2cdxx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-# d2cdxy = interpolate(d2cxy[:,:,1,2],BSpline(Cubic(Natural())),OnGrid());
-# hessxy(x,y) = d2cdxy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-# d2cdyx = interpolate(d2cxy[:,:,2,1],BSpline(Cubic(Natural())),OnGrid());
-# hessyx(x,y) = d2cdyx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-# d2cdyy = interpolate(d2cxy[:,:,2,2],BSpline(Cubic(Natural())),OnGrid());
-# hessyy(x,y) = d2cdyy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-#
-# hesscspd(x,y) = [hessxx(x,y) hessxy(x,y) ; hessyx(x,y) hessyy(x,y)];
-#
-# # Check the domain, but just return:
-# return cspd,gradcspd,hesscspd;
-
-
-  ## Knotted Approach:
-  cInterp = interpolate(knots, cxy, Gridded(Linear()));
-  # this gives us back an interpolation object
-  cspd(x,y) = cInterp[x,y];
-
   # gradmetric(x,y) = gradient(itp,x,y);
   if interpType == "linear"
+    ## Knotted Approach:
+    cInterp = interpolate(knots, cxy, Gridded(Linear()));
+    # this gives us back an interpolation object
+    cspd(x,y) = cInterp[x,y];
+
+    # interpolation of the gradient
     dcdxInterp = interpolate(knots,dcxy[:,:,1],Gridded(Linear()));
     dcdyInterp = interpolate(knots,dcxy[:,:,2],Gridded(Linear()));
-  elseif interpType == "quadratic"
-    println("only linear interpolation has been implemented")
-  end
-  # TODO We may want to interpolate using high order schemes
-  gradcspd(x,y) = [dcdxInterp[x,y],dcdyInterp[x,y]];
+    gradcspd(x,y) = [dcdxInterp[x,y],dcdyInterp[x,y]];
 
-
-  # hessmetric(x,y) = zeros(2,2);
-  if interpType == "linear"
+    # interpolation of the Hessian
     d2cdx2Interp = interpolate(knots,d2cxy[:,:,1,1],Gridded(Linear()));
     d2cdxyInterp = interpolate(knots,d2cxy[:,:,1,2],Gridded(Linear()));
     d2cdyxInterp = interpolate(knots,d2cxy[:,:,2,1],Gridded(Linear()));
     d2cdy2Interp = interpolate(knots,d2cxy[:,:,2,2],Gridded(Linear()));
-  elseif interpType == "quadratic"
-    println("only linear interpolation has been implemented")
+    hesscspd(x,y) = [d2cdx2Interp[x,y] d2cdxyInterp[x,y] ;
+                     d2cdyxInterp[x,y] d2cdy2Interp[x,y]];
+
+  elseif interpType == "cubic"
+    println("very experimental! beware things may not work as intended")
+    ##TODO: use knots with the information of the mesh and then
+    ## use the rescaling follwoing knots
+    c = interpolate(cxy,BSpline(Cubic(Natural())), OnGrid())
+    Nx,Ny = size(cxy);
+    # Renormalize to a unit interval in both dimensions, too:
+    cspd(x,y) = c[0.5*x*(Nx-1) + 0.5*(Nx+1) , 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+
+    # interpolation of the gradient
+    dcdx = interpolate(dcxy[:,:,1],BSpline(Cubic(Natural())),OnGrid());
+    gradx(x,y) = dcdx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)]
+    dcdy = interpolate(dcxy[:,:,2],BSpline(Cubic(Natural())),OnGrid());
+    grady(x,y) = dcdy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+
+    gradcspd(x,y) = [gradx(x,y),grady(x,y) ];
+
+    # interpolation of the Hessian
+    d2cdxx = interpolate(d2cxy[:,:,1,1],BSpline(Cubic(Natural())),OnGrid());
+    hessxx(x,y) = d2cdxx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    d2cdxy = interpolate(d2cxy[:,:,1,2],BSpline(Cubic(Natural())),OnGrid());
+    hessxy(x,y) = d2cdxy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    d2cdyx = interpolate(d2cxy[:,:,2,1],BSpline(Cubic(Natural())),OnGrid());
+    hessyx(x,y) = d2cdyx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    d2cdyy = interpolate(d2cxy[:,:,2,2],BSpline(Cubic(Natural())),OnGrid());
+    hessyy(x,y) = d2cdyy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+
+    hesscspd(x,y) = [ hessxx(x,y) hessxy(x,y);
+                      hessyx(x,y) hessyy(x,y)];
   end
-  hesscspd(x,y) = [d2cdx2Interp[x,y] d2cdxyInterp[x,y] ;
-                   d2cdyxInterp[x,y] d2cdy2Interp[x,y]];
 
   return cspd,gradcspd,hesscspd;
 
