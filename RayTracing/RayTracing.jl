@@ -1,18 +1,40 @@
 ## These are functions for Ray Tracing with just two basic shapes, Square and Circle.
 ## Mainly, just the square, because Circles are smooth and we have SmoothRayTracing.jl
 
-function gaussianmetric(s,u)
-# u(1) = x coordinate, u(2) = y coordinate,
-# u(3) = x velocity, u(4) = y velocity.
+@inline function gaussianmetric(s::Float64,u::Array{Float64,1})
+# Function that computes
+# \partial_x H(x, xi) and \partial_xi H(x,xi)
+# when the Hamiltonian is given by a zero mean gaussian
+# with sigma = 2.
+# input :     s:time
+#             u: position in phase space where
+#             u(1) = x coordinate, u(2) = y coordinate,
+#             u(3) = x velocity, u(4) = y velocity.
+# output :    dH, vector composed of
+#             \partial_x  H(u[1:2], u[3:4]) and
+#             \partial_xi H(u[1:2], u[3:4]) at the point s
 # This has no bearing on the domain anyways!
 
-    dH = zeros(4);
+    dH = zeros(Float64,4);
+
+    # precomputing the exponential
+    cons = exp(u[1].^2 + u[2].^2);
+
     # The positions:
-    dH[1] = u[3].*exp(u[1].^2 + u[2].^2);
-    dH[2] = u[4].*exp(u[1].^2 + u[2].^2);
+    dH[1:2] = cons*u[3:4];
+
+    # The line above codifies the following code
+    # dH[1] = u[3].*exp(u[1].^2 + u[2].^2);
+    # dH[2] = u[4].*exp(u[1].^2 + u[2].^2);
+
+    # precomputing the multiplication factor
+    cons2 = -(u[3].^2 + u[4].^2)*cons;
     # The momenta:
-    dH[3] = -(u[3].^2 + u[4].^2).*u[1].*exp(u[1].^2 + u[2].^2);
-    dH[4] = -(u[3].^2 + u[4].^2).*u[2].*exp(u[1].^2 + u[2].^2);
+    dH[3:4] = cons2*u[1:2]
+
+    # The line above codifies the following code
+    # dH[3] = -(u[3].^2 + u[4].^2).*u[1].*exp(u[1].^2 + u[2].^2);
+    # dH[4] = -(u[3].^2 + u[4].^2).*u[2].*exp(u[1].^2 + u[2].^2);
     return dH
 
 end
@@ -21,7 +43,7 @@ end
 # If we instead use just 3 variables where the velocity is all encapsulated in
 # just the direction, theta = u[3].
 
-function gaussianmetrictheta(s,u)
+@inline function gaussianmetrictheta(s::Float64,u::Array{Float64,1})
   # u(1) = x coordinate, u(2) = y coordinate,
   # u(3) = x velocity, u(4) = y velocity.
   # This has no bearing on the domain anyways!
