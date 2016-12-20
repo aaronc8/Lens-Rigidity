@@ -52,6 +52,8 @@ function GradHessFinDiff(cxy::Array{Float64,2})
   # Hessian. (this should be low order)
 # For derivatives, an alternative is to just use the interior points, too.
 
+  ## We can add higher order derivates usien the Fornberg algoritun to produce the
+  # stencils
   Nedge = length(cxy[:,1]) - 1;
   gradcxy = zeros(Nedge+1,Nedge+1,2);
   hesscxy = zeros(Nedge+1,Nedge+1,2,2);

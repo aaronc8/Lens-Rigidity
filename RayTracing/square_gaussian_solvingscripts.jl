@@ -34,10 +34,19 @@ ds = 2;
 # gradcxy,hesscxy = GradHessFFT(cxy,-2,2);
 # cxy = cxy[Nedge+1:3*Nedge+1, Nedge+1:3*Nedge+1]
 
+# Defining the physical domain in which the inversion will take place.
 x = -1:2/Nedge:1;
 y = x;
+
+# Defining the wavespeed
 cxy = exp(0.5.*( x.^2 .+ y'.^2 ));
+# Computing the gradient using finite differences
 gradcxy,hesscxy = GradHessFinDiff(cxy);
+
+
+gradcxyExact = zeros(length(x),length(y),2);
+gradcxyExact[:,:,1] = cxy.*(x   .+ 0*y');
+gradcxyExact[:,:,2] = cxy.*(0*x'.+ y);
 # surf(x,y,cxy)
 
 # k = 2:Nedge;
@@ -52,7 +61,7 @@ gradcxy,hesscxy = GradHessFinDiff(cxy);
 # c2xy = ones(Nedge,Nedge);
 
 # defining the mesh
-knots = ([x for x = -1:2/Nedge:1], [y for y = -1:2/Nedge:1]);
+knots = ([xi for xi in x ], [yi for yi in y]);
 # metric,dmetric = generateMetric(knots,cxy);
 # cspd,gradcspd,hesscspd = generateMetric(cxy,gradcxy,hesscxy);
 
@@ -66,6 +75,19 @@ cxy = exp(0.5.*(x.^2 .+ y'.^2));
 display("Check the approximation agrees with the original metric:")
 display(norm(cxy-cspd(x,y),Inf))
 
+
+xx = -1:0.5/Nedge:1;   # For the actual grid ...
+yy = x;
+cxy = exp(0.5.*(xx.^2 .+ yy'.^2));
+println("Check the approximation error when interpolating")
+display(norm(cxy-cspd(xx,yy),Inf))
+
+
+# Can check surf(x,y,cxy) just to be safe....Also
+println("Check the approximation of the derivative")
+display(display(maximum(abs(gradcxyExact[:,:,1]-gradcspd(x,y)[1] ))))
+
+
 # If BSplines, The square is from [1/Nx, 1] x [1/Ny,1] so we need to rescale:
 # gpre,dgpre = generateMetric(cxy);
 # Nx,Ny = size(cxy);
@@ -75,8 +97,8 @@ display(norm(cxy-cspd(x,y),Inf))
 ###############################################################################
 # Construct the Hamiltonian system using the interpolated metric:
 # How to get Julia to output a function?? If dH is done manually, works fine...
-metric(x,y) = cspd(x,y).^2;
-dmetric(x,y) = 2*cspd(x,y).*gradcspd(x,y);
+@inline metric(x::Float64,y::Float64)  = cspd(x,y).^2;
+@inline dmetric(x::Float64,y::Float64) = 2*cspd(x,y).*gradcspd(x,y);
 dHtheta = makeHamiltonian(metric,dmetric,true);  # Or:
 dH = makeHamiltonian(metric,dmetric,false);
 ## And checked its ray evolution is okay now
