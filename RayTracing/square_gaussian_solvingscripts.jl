@@ -51,9 +51,12 @@ gradcxy,hesscxy = GradHessFinDiff(cxy);
 
 # c2xy = ones(Nedge,Nedge);
 
+# defining the mesh
 knots = ([x for x = -1:2/Nedge:1], [y for y = -1:2/Nedge:1]);
 # metric,dmetric = generateMetric(knots,cxy);
 # cspd,gradcspd,hesscspd = generateMetric(cxy,gradcxy,hesscxy);
+
+# building interpolation objects
 cspd,gradcspd,hesscspd = generateMetric(knots,cxy,gradcxy,hesscxy);
 
 x = -1:2/Nedge:1;   # For the actual grid ...

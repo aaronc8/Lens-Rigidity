@@ -130,34 +130,34 @@ function generateMetric(knots,cxy::Array{Float64,2},
                      d2cdyxInterp[x,y] d2cdy2Interp[x,y]];
 
   elseif interpType == "cubic"
-    println("very experimental! beware things may not work as intended")
-    ##TODO: use knots with the information of the mesh and then
-    ## use the rescaling follwoing knots
-    c = interpolate(cxy,BSpline(Cubic(Natural())), OnGrid())
-    Nx,Ny = size(cxy);
-    # Renormalize to a unit interval in both dimensions, too:
-    cspd(x,y) = c[0.5*x*(Nx-1) + 0.5*(Nx+1) , 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    # println("very experimental! beware things may not work as intended")
+    # ##TODO: use knots with the information of the mesh and then
+    # ## use the rescaling follwoing knots
+    # c = interpolate(cxy,BSpline(Cubic(Natural())), OnGrid())
+    # Nx,Ny = size(cxy);
+    # # Renormalize to a unit interval in both dimensions, too:
+    # cspd(x,y) = c[0.5*x*(Nx-1) + 0.5*(Nx+1) , 0.5*y*(Ny-1) + 0.5*(Ny+1)];
 
-    # interpolation of the gradient
-    dcdx = interpolate(dcxy[:,:,1],BSpline(Cubic(Natural())),OnGrid());
-    gradx(x,y) = dcdx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)]
-    dcdy = interpolate(dcxy[:,:,2],BSpline(Cubic(Natural())),OnGrid());
-    grady(x,y) = dcdy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    # # interpolation of the gradient
+    # dcdx = interpolate(dcxy[:,:,1],BSpline(Cubic(Natural())),OnGrid());
+    # gradx(x,y) = dcdx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)]
+    # dcdy = interpolate(dcxy[:,:,2],BSpline(Cubic(Natural())),OnGrid());
+    # grady(x,y) = dcdy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
 
-    gradcspd(x,y) = [gradx(x,y),grady(x,y) ];
+    # gradcspd(x,y) = [gradx(x,y),grady(x,y) ];
 
-    # interpolation of the Hessian
-    d2cdxx = interpolate(d2cxy[:,:,1,1],BSpline(Cubic(Natural())),OnGrid());
-    hessxx(x,y) = d2cdxx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-    d2cdxy = interpolate(d2cxy[:,:,1,2],BSpline(Cubic(Natural())),OnGrid());
-    hessxy(x,y) = d2cdxy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-    d2cdyx = interpolate(d2cxy[:,:,2,1],BSpline(Cubic(Natural())),OnGrid());
-    hessyx(x,y) = d2cdyx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
-    d2cdyy = interpolate(d2cxy[:,:,2,2],BSpline(Cubic(Natural())),OnGrid());
-    hessyy(x,y) = d2cdyy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    # # interpolation of the Hessian
+    # d2cdxx = interpolate(d2cxy[:,:,1,1],BSpline(Cubic(Natural())),OnGrid());
+    # hessxx(x,y) = d2cdxx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    # d2cdxy = interpolate(d2cxy[:,:,1,2],BSpline(Cubic(Natural())),OnGrid());
+    # hessxy(x,y) = d2cdxy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    # d2cdyx = interpolate(d2cxy[:,:,2,1],BSpline(Cubic(Natural())),OnGrid());
+    # hessyx(x,y) = d2cdyx[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
+    # d2cdyy = interpolate(d2cxy[:,:,2,2],BSpline(Cubic(Natural())),OnGrid());
+    # hessyy(x,y) = d2cdyy[0.5*x*(Nx-1) + 0.5*(Nx+1), 0.5*y*(Ny-1) + 0.5*(Ny+1)];
 
-    hesscspd(x,y) = [ hessxx(x,y) hessxy(x,y);
-                      hessyx(x,y) hessyy(x,y)];
+    # hesscspd(x,y) = [ hessxx(x,y) hessxy(x,y);
+    #                   hessyx(x,y) hessyy(x,y)];
   end
 
   return cspd,gradcspd,hesscspd;

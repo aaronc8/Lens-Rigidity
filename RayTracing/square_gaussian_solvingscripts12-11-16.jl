@@ -6,12 +6,12 @@ using Interpolations
 include("RayTracing.jl");
 include("MetricSolver.jl");
 
-N = 5;
-Nedge = 2^N;   # number of partitions of sides.
-Nangle = 2^N;   # number of partitions of angle.
-dphi = pi/Nangle;   # This needs to be taken better care of
+N = 6;
+Nedge   = 2^N;        # number of partitions of sides.
+Nangle  = 2^N;        # number of partitions of angle.
+dphi    = pi/Nangle;  # delta phi?
 dl = 2/Nedge;
-ds = 2;
+ds = 2; # maximum time for the evolution of each ray (I Think)
 
 ###############################################################################
 ## Testing Development of the Integration functions for K_i^n
@@ -28,23 +28,18 @@ ds = 2;
 # gradcxy,hesscxy = GradHessFFT(cxy,-2,2);
 # cxy = cxy[Nedge+1:3*Nedge+1, Nedge+1:3*Nedge+1]
 
+# Defining the physical domain in which the inversion will take place.
 x = -1:2/Nedge:1;
 y = x;
+
+# Defining the wavespeed
 cxy = exp(0.5.*( x.^2 .+ y'.^2 ));
+# Computing the gradient using finite differences
 gradcxy,hesscxy = GradHessFinDiff(cxy);
+# NOTE: Missing correct scaling! it needs to be nultiplied by h
 
-# k = 2:Nedge;
-# dcdx = zeros(Nedge+1, Nedge+1);
-# dcdx[:,k] = (Nedge/4).*(cxy[:,k+1] - cxy[:,k-1]);
-# dcdx[:,1] = (Nedge/4).*(-3.0.*cxy[:,1] + 4.0.*cxy[:,2] - cxy[:,3]);
-# dcdx[:,end] = (Nedge/4).*(-3.0.*cxy[:,end] + 4.0.*cxy[:,end-1] - cxy[:,end-2]);
-
-
-
-
-# c2xy = ones(Nedge,Nedge);
-
-knots = ([x for x = -1:2/Nedge:1], [y for y = -1:2/Nedge:1]);
+#Defining the mesh
+knots = ([xi for xi in x ], [yi for yi in y]);
 # metric,dmetric = generateMetric(knots,cxy);
 # cspd,gradcspd,hesscspd = generateMetric(cxy,gradcxy,hesscxy);
 cspd,gradcspd,hesscspd = generateMetric(knots,cxy,gradcxy,hesscxy);
@@ -55,6 +50,12 @@ cxy = exp(0.5.*(x.^2 .+ y'.^2));
 # Can check surf(x,y,cxy) just to be safe....Also
 display("Check the approximation agrees with the original metric:")
 display(norm(cxy-cspd(x,y),Inf))
+
+xx = -1:0.5/Nedge:1;   # For the actual grid ...
+yy = x;
+cxy = exp(0.5.*(xx.^2 .+ yy'.^2));
+println("Check the approximation agrees with the original metric:")
+display(norm(cxy-cspd(xx,yy),Inf))
 
 # If BSplines, The square is from [1/Nx, 1] x [1/Ny,1] so we need to rescale:
 # gpre,dgpre = generateMetric(cxy);
@@ -226,4 +227,4 @@ display(Kni)
 KW,KS,KE,KN = geodesicMismatch(cspd,gradcspd,hesscspd,lambda,dlambda,Nedge,Nangle,ds);
 ## Since doing with just dg = identity, the result should be very close still
 ## when the geodesics are short, i.e. in the corners of the matrix. Near Endpoints
-## and only when theta is near 0 or pi. 
+## and only when theta is near 0 or pi.
