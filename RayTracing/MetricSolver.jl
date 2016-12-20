@@ -1,6 +1,10 @@
 ## Functions used to solve for the Riemannian Metric.
 
-function GradHessFFT(cxy,p0,pf)
+function GradHessFFT(cxy::Array{Float64,2},p0,pf)
+  # This function computes the gradient and Hessian of the wavespeedn cxy
+  #
+  ## TODO: what is the signature of this funtion?
+  ## what's is p0 and pf?
 ## Solve for the derivatives of just c with fft. We can square c or do whatever
 ## to it from there.
 
@@ -35,6 +39,7 @@ function GradHessFFT(cxy,p0,pf)
   ffthesscxy[:,:,2,2] = ifft(ifftshift(ffthesscxy[:,:,2,2]));
 
   r0 = convert(Int64, hx/4 + 1); rf = 3*r0 + -2;
+  ## WHYYYY....???!!!
 
   return real(fftgradcxy[r0:rf, r0:rf, : ]), real(ffthesscxy[r0:rf, r0:rf, :, :]);
   # return fftgradcxy,ffthesscxy
@@ -42,36 +47,38 @@ end
 
 #################################################
 
-function GradHessFinDiff(cxy)
+function GradHessFinDiff(cxy::Array{Float64,2})
+  # Function to compute a finite difference approximation of the gradient and the
+  # Hessian. (this should be low order)
 # For derivatives, an alternative is to just use the interior points, too.
 
-Nedge = length(cxy[:,1]) - 1;
-gradcxy = zeros(Nedge+1,Nedge+1,2);
-hesscxy = zeros(Nedge+1,Nedge+1,2,2);
+  Nedge = length(cxy[:,1]) - 1;
+  gradcxy = zeros(Nedge+1,Nedge+1,2);
+  hesscxy = zeros(Nedge+1,Nedge+1,2,2);
 
-k = 2:Nedge;
+  k = 2:Nedge;
 
-gradcxy[:,k,2] = (Nedge/4).*(cxy[:,k+1] - cxy[:,k-1]);
-gradcxy[:,1,2] = (Nedge/4).*(-3.0.*cxy[:,1] + 4.0.*cxy[:,2] - cxy[:,3]);
-gradcxy[:,end,2] = (-Nedge/4).*(-3.0.*cxy[:,end] + 4.0.*cxy[:,end-1] - cxy[:,end-2]);   #####
-gradcxy[k,:,1] = (Nedge/4).*(cxy[k+1,:] - cxy[k-1,:]);
-gradcxy[1,:,1] = (Nedge/4).*(-3.0.*cxy[1,:] + 4.0.*cxy[2,:] - cxy[3,:]);
-gradcxy[end,:,1] = (-Nedge/4).*(-3.0.*cxy[end,:] + 4.0.*cxy[end-1,:] - cxy[end-2,:]);   #####
+  gradcxy[:,k,2] = (Nedge/4).*(cxy[:,k+1] - cxy[:,k-1]);
+  gradcxy[:,1,2] = (Nedge/4).*(-3.0.*cxy[:,1] + 4.0.*cxy[:,2] - cxy[:,3]);
+  gradcxy[:,end,2] = (-Nedge/4).*(-3.0.*cxy[:,end] + 4.0.*cxy[:,end-1] - cxy[:,end-2]);   #####
+  gradcxy[k,:,1] = (Nedge/4).*(cxy[k+1,:] - cxy[k-1,:]);
+  gradcxy[1,:,1] = (Nedge/4).*(-3.0.*cxy[1,:] + 4.0.*cxy[2,:] - cxy[3,:]);
+  gradcxy[end,:,1] = (-Nedge/4).*(-3.0.*cxy[end,:] + 4.0.*cxy[end-1,:] - cxy[end-2,:]);   #####
 
-# For Hessian, just reuse the gradient this time since it uses cxy pts.
-hesscxy[:,k,1,2] = (Nedge/4).*(gradcxy[:,k+1,1] - gradcxy[:,k-1,1]);
-hesscxy[:,1,1,2] = (Nedge/4).*(-3.0.*gradcxy[:,1,1] + 4.0.*gradcxy[:,2,1] - gradcxy[:,3,1]);
-hesscxy[:,end,1,2] = (-Nedge/4).*(-3.0.*gradcxy[:,end,1] + 4.0.*gradcxy[:,end-1,1] - gradcxy[:,end-2,1]);
-hesscxy[k,:,1,1] = (Nedge/4).*(gradcxy[k+1,:,1] - gradcxy[k-1,:,1]);
-hesscxy[1,:,1,1] = (Nedge/4).*(-3.0.*gradcxy[1,:,1] + 4.0.*gradcxy[2,:,1] - gradcxy[3,:,1]);
-hesscxy[end,:,1,1] = (-Nedge/4).*(-3.0.*gradcxy[end,:,1] + 4.0.*gradcxy[end-1,:,1] - gradcxy[end-2,:,1]);
+  # For Hessian, just reuse the gradient this time since it uses cxy pts.
+  hesscxy[:,k,1,2] = (Nedge/4).*(gradcxy[:,k+1,1] - gradcxy[:,k-1,1]);
+  hesscxy[:,1,1,2] = (Nedge/4).*(-3.0.*gradcxy[:,1,1] + 4.0.*gradcxy[:,2,1] - gradcxy[:,3,1]);
+  hesscxy[:,end,1,2] = (-Nedge/4).*(-3.0.*gradcxy[:,end,1] + 4.0.*gradcxy[:,end-1,1] - gradcxy[:,end-2,1]);
+  hesscxy[k,:,1,1] = (Nedge/4).*(gradcxy[k+1,:,1] - gradcxy[k-1,:,1]);
+  hesscxy[1,:,1,1] = (Nedge/4).*(-3.0.*gradcxy[1,:,1] + 4.0.*gradcxy[2,:,1] - gradcxy[3,:,1]);
+  hesscxy[end,:,1,1] = (-Nedge/4).*(-3.0.*gradcxy[end,:,1] + 4.0.*gradcxy[end-1,:,1] - gradcxy[end-2,:,1]);
 
-hesscxy[:,k,2,2] = (Nedge/4).*(gradcxy[:,k+1,2] - gradcxy[:,k-1,2]);
-hesscxy[:,1,2,2] = (Nedge/4).*(-3.0.*gradcxy[:,1,2] + 4.0.*gradcxy[:,2,2] - gradcxy[:,3,2]);
-hesscxy[:,end,2,2] = (-Nedge/4).*(-3.0.*gradcxy[:,end,2] + 4.0.*gradcxy[:,end-1,2] - gradcxy[:,end-2,2]);
-hesscxy[k,:,2,1] = (Nedge/4).*(gradcxy[k+1,:,2] - gradcxy[k-1,:,2]);
-hesscxy[1,:,2,1] = (Nedge/4).*(-3.0.*gradcxy[1,:,2] + 4.0.*gradcxy[2,:,2] - gradcxy[3,:,2]);
-hesscxy[end,:,2,1] = (-Nedge/4).*(-3.0.*gradcxy[end,:,2] + 4.0.*gradcxy[end-1,:,2] - gradcxy[end-2,:,2]);
+  hesscxy[:,k,2,2] = (Nedge/4).*(gradcxy[:,k+1,2] - gradcxy[:,k-1,2]);
+  hesscxy[:,1,2,2] = (Nedge/4).*(-3.0.*gradcxy[:,1,2] + 4.0.*gradcxy[:,2,2] - gradcxy[:,3,2]);
+  hesscxy[:,end,2,2] = (-Nedge/4).*(-3.0.*gradcxy[:,end,2] + 4.0.*gradcxy[:,end-1,2] - gradcxy[:,end-2,2]);
+  hesscxy[k,:,2,1] = (Nedge/4).*(gradcxy[k+1,:,2] - gradcxy[k-1,:,2]);
+  hesscxy[1,:,2,1] = (Nedge/4).*(-3.0.*gradcxy[1,:,2] + 4.0.*gradcxy[2,:,2] - gradcxy[3,:,2]);
+  hesscxy[end,:,2,1] = (-Nedge/4).*(-3.0.*gradcxy[end,:,2] + 4.0.*gradcxy[end-1,:,2] - gradcxy[end-2,:,2]);
 
 return gradcxy,hesscxy;
 
@@ -79,7 +86,26 @@ end
 
 ###################################################
 
-function generateMetric(knots,cxy,dcxy,d2cxy)
+function generateMetric(knots,cxy::Array{Float64,2},
+                              dcxy::Array{Float64,3},
+                              d2cxy::Array{Float64,4};
+                              interpType::String="linear")
+  # Takes the computed values of cxy at (x,y) ∈ knots and interpolates.
+  # input : knots:  physical points in which the values of
+  #                 the functions are defined
+  #         cxy:    Array containing the value of the wavespeed
+  #                 at the points defined by knots
+  #         dcxy:   Array containing the value of the gradient of
+  #                 the wavespeed at the points defined by knots
+  #         d2cxy:  Array containing the value of the Hessian of
+  #                 the wavespeed at the points defined by knots
+  #         interpType: type of interpolation
+  # outputs: cspd:     function that interpolated the wavespeed
+  #          gradcspd: function that interpolated the gradient of
+  #                    the wavespeed
+  #          hesscspd: function that interpolated the hessian of
+  #                    the wavespeed
+
 ### For other domains, if BSplines, may need the length of box it is contained in
 ### due to the BSpline being off the knots.
 
@@ -113,23 +139,35 @@ function generateMetric(knots,cxy,dcxy,d2cxy)
 # return cspd,gradcspd,hesscspd;
 
 
-## Knotted Approach:
-c = interpolate(knots, cxy, Gridded(Linear()));
-cspd(x,y) = c[x,y];
+  ## Knotted Approach:
+  cInterp = interpolate(knots, cxy, Gridded(Linear()));
+  # this gives us back an interpolation object
+  cspd(x,y) = cInterp[x,y];
 
-# gradmetric(x,y) = gradient(itp,x,y);
-dcdx = interpolate(knots,dcxy[:,:,1],Gridded(Linear()));
-dcdy = interpolate(knots,dcxy[:,:,2],Gridded(Linear()));
-gradcspd(x,y) = [dcdx[x,y],dcdy[x,y]];
+  # gradmetric(x,y) = gradient(itp,x,y);
+  if interpType == "linear"
+    dcdxInterp = interpolate(knots,dcxy[:,:,1],Gridded(Linear()));
+    dcdyInterp = interpolate(knots,dcxy[:,:,2],Gridded(Linear()));
+  elseif interpType == "quadratic"
+    println("only linear interpolation has been implemented")
+  end
+  # TODO We may want to interpolate using high order schemes
+  gradcspd(x,y) = [dcdxInterp[x,y],dcdyInterp[x,y]];
 
 
-# hessmetric(x,y) = zeros(2,2);
-d2cdx2 = interpolate(knots,d2cxy[:,:,1,1],Gridded(Linear()));
-d2cdxy = interpolate(knots,d2cxy[:,:,1,2],Gridded(Linear()));
-d2cdyx = interpolate(knots,d2cxy[:,:,2,1],Gridded(Linear()));
-d2cdy2 = interpolate(knots,d2cxy[:,:,2,2],Gridded(Linear()));
-hesscspd(x,y) = [d2cdx2[x,y] d2cdxy[x,y] ; d2cdyx[x,y] d2cdy2[x,y]];
-return cspd,gradcspd,hesscspd;
+  # hessmetric(x,y) = zeros(2,2);
+  if interpType == "linear"
+    d2cdx2Interp = interpolate(knots,d2cxy[:,:,1,1],Gridded(Linear()));
+    d2cdxyInterp = interpolate(knots,d2cxy[:,:,1,2],Gridded(Linear()));
+    d2cdyxInterp = interpolate(knots,d2cxy[:,:,2,1],Gridded(Linear()));
+    d2cdy2Interp = interpolate(knots,d2cxy[:,:,2,2],Gridded(Linear()));
+  elseif interpType == "quadratic"
+    println("only linear interpolation has been implemented")
+  end
+  hesscspd(x,y) = [d2cdx2Interp[x,y] d2cdxyInterp[x,y] ;
+                   d2cdyxInterp[x,y] d2cdy2Interp[x,y]];
+
+  return cspd,gradcspd,hesscspd;
 
 end
 
@@ -137,18 +175,21 @@ end
 
 
 function makeHamiltonian(metric::Function,dmetric::Function, theta)
-
-  function dH(s,u)
-    V = zeros(4);
-    V[1] = u[3].*metric(u[1],u[2]);
-    V[2] = u[4].*metric(u[1],u[2]);
-    V[3] = -0.5.*(u[3].^2 + u[4].^2).*dmetric(u[1],u[2])[1];
-    V[4] = -0.5.*(u[3].^2 + u[4].^2).*dmetric(u[1],u[2])[2];
+# function that gives back a the derivative of the Hamiltonian
+# I'm not sure if this is fast though, I'm adding some typing
+  @inline function dH(s::Float64,u::Array{Float64,1})
+    V = zeros(Float64,4);
+    cons = metric(u[1],u[2]);
+    # position
+    V[1:2] = u[3:4]*cons
+    cons2 = -0.5.*(u[3].^2 + u[4].^2)
+    # momentum
+    V[3:4] = cons2*dmetric(u[1],u[2])
     return V;
   end
 
-  function dHtheta(s,u)
-    Vtheta = zeros(3);
+  function dHtheta(s::Float64,u::Array{Float64,1})
+    Vtheta = zeros(Float64,3);
     Vtheta[1] = cos(u[3]).*metric(u[1],u[2])^0.5;
     Vtheta[2] = sin(u[3]).*metric(u[1],u[2])^0.5;
     Vtheta[3] = 0.5.*dot( [sin(u[3]), -cos(u[3])] , dmetric(u[1],u[2]) )./metric(u[1],u[2]).^0.5 ;
@@ -171,118 +212,140 @@ function generatePath(bdy::Function, metric::Function,u0,ds)
 # Similar to method "squaregaussianrelation" but we have to keep the whole path.
 # We still need to solve for exit time s_out for upper bound of integral....
 
-s,u = ode45(metric, u0, [0.0,ds]);
-k = find(x -> ( bdy(x[1],x[2]) >= -eps() ), u[2:end]);
-kshift = 0;
+    # solve the geodesic using the ODE solver
+    s,u = ode45(metric, u0, [0.0,ds]);
 
-scaling = max(ds,1/ds);
-maxiter = 1;
+    # we check if the ray is out of the domain
+    k = find(x -> ( bdy(x[1],x[2]) >= -eps() ), u[2:end]);
+    kshift = 0;
 
-while isempty(k) && maxiter < 1000*scaling ## In case of trapped rays
-    u0 = u[end];
-    sadd,uadd = ode45(metric,u0,[0.0,ds]);
-    k = find(x -> ( bdy(x[1],x[2]) >= -eps() ), uadd[2:end]);
-    sadd = sadd + s[end];
-    #shift = length(u) - length(uadd);
-    #kshift = length(u) - shift;
-    kshift = length(u);
-    s = append!(s,sadd);
-    u = append!(u,uadd);
-    maxiter = maxiter + 1;
-end
+    # We make sure that the ray is out of the domain!
+    scaling = max(ds,1/ds);
+    maxiter = 1;
 
-
-if isempty(k)
-  k = length(u);
-else
-  k = k[1] + 1 + kshift;
-end
-
-# Now to give the interpolated path.
-knots = (s[1:k],);
-xval = map( t -> t[1], u[1:k]);
-yval = map( t -> t[2], u[1:k]);
-xitp = interpolate(knots, xval, Gridded(Linear()));
-yitp = interpolate(knots, yval, Gridded(Linear()));
-# Xg(s) = zeros(length(u0));
-if length(u0) == 3   ## This is being overwritten by the other if statement still,,?
-  thetaval = map(t -> t[3], u[1:k]);
-  thetaitp = interpolate(knots,thetaval,Gridded(Linear()));
-  Xgtheta(s) = [xitp[s], yitp[s], thetaitp[s]];
-end
-
-if length(u0) == 4
-  vxval = map(t -> t[3], u[1:k]);
-  vyval = map(t -> t[4], u[1:k]);
-  vxitp = interpolate(knots, vxval, Gridded(Linear()));
-  vyitp = interpolate(knots, vyval, Gridded(Linear()));
-  Xg(s) = [xitp[s], yitp[s], vxitp[s], vyitp[s]];
-end
-
-## Construct interpolant for exit time:    ## Maybe we don't need to? It should be
-## given from the original ODE evolution...
-
-u1 = u[k-1]; u2 = u[k];
-s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1; sout = s1+0.5*spread;
-
-if spread <= 1e-4 || norm(u1 - u2, 2) <= 1e-4
-  if length(u1)  == 3
-    return Xgtheta,sout;
-  end
-  if length(u1) == 4
-    return Xg,sout;
-  end
-end
-
-# u1 = u[end-1]; u2 = uf;
-# s1 = s[end-1][1]; s2 = s[end][1]; sf = s2-s1;
-
-# Need more data points (specifically 5) for 4th order:
-dt = spread/4.0;
-tspan = 0:dt:spread;
-# sp,up = ODE.ode45(gaussianmetric,u1,tspan);
-s,u = ode45(metric,u1,tspan,points=:specified);    # tspan only ensures at least 5 pts
-## Need to find the times because otherwise, Least Squares is singular.
-# k2 = find(x -> x == tspan[2],s);
-# k3 = find(x -> x == tspan[3],s);
-# k4 = find(x -> x == tspan[4],s);
-# index = [1 k2[1] k3[1] k4[1] length(s)];
-
-# up = u[index]; sp = s[index] + s1;
-up = u[1:5]; sp = s[1:5] + s1;
-up[end] = u2; sp[end] = s2;
-
-# Interpolate positions:
-xp = map( v -> v[1], up);
-xI = polyfit(sp,xp);
-yp = map( v-> v[2], up);
-yI = polyfit(sp, yp);
-
-uf = u2; # Need to use for corner cases, if both |x|,|y| > 1.
-
-# Because it's not root finding the exit point:
-if abs(uf[1]) >= 1  # x-exit
-  dom = xI - sign(u2[1]);
-  dxI = polyder(xI);
-  sout = newtonbisection(dom, dxI, s1, s2, 1e-5);
-  # uf[1] = xI(sout); uf[2] = yI(sout);  # Don't need exit data exactly...
-end
-
-if abs(uf[2]) >= 1  # Also to account for if y exits before x.
-  dom = yI - sign(uf[2]);
-  dyI = polyder(yI);
-  sout = newtonbisection(dom, dyI, s1, s2, 1e-5);
-  # uf[1] = xI(sout); uf[2] = yI(sout); # Don't need exit data
-end
+    # we interate until the ray if fully out of the domain
+    while isempty(k) && maxiter < 1000*scaling ## In case of trapped rays
+        u0 = u[end];
+        sadd,uadd = ode45(metric,u0,[0.0,ds]);
+        k = find(x -> ( bdy(x[1],x[2]) >= -eps() ), uadd[2:end]);
+        sadd = sadd + s[end];
+        #shift = length(u) - length(uadd);
+        #kshift = length(u) - shift;
+        kshift = length(u);
+        s = append!(s,sadd);
+        u = append!(u,uadd);
+        maxiter = maxiter + 1;
+    end
 
 
-if length(u0) == 3
-  return Xgtheta,sout;
-end
+    if isempty(k)
+      k = length(u);
+    else
+      k = k[1] + 1 + kshift;
+    end
 
-if length(u0) == 4
-  return Xg,sout;
-end
+    ## Now to give the interpolated path.
+
+    # define the interpolation values
+    knots = (s[1:k],);
+
+    # NOTE: I'm not sure that s are actually equidistant
+
+    # extract the first and second componene of the phase
+    # space vector
+    xval = map( t -> t[1], u[1:k]);
+    yval = map( t -> t[2], u[1:k]);
+
+    # define the interpolation objects using the package
+    xitp = interpolate(knots, xval, Gridded(Linear()));
+    yitp = interpolate(knots, yval, Gridded(Linear()));
+
+    # to interpolate the momentum, it will depend if we are in
+    # cartesian of polar coordinates
+
+    # Xg(s) = zeros(length(u0));
+    # Polar coordinates
+    if length(u0) == 3   ## This is being overwritten by the other if statement still,,?
+      thetaval = map(t -> t[3], u[1:k]);
+      thetaitp = interpolate(knots,thetaval,Gridded(Linear()));
+      Xgtheta(s) = [xitp[s], yitp[s], thetaitp[s]];
+    end
+
+    # cartesian coordinates
+    if length(u0) == 4
+      vxval = map(t -> t[3], u[1:k]);
+      vyval = map(t -> t[4], u[1:k]);
+      vxitp = interpolate(knots, vxval, Gridded(Linear()));
+      vyitp = interpolate(knots, vyval, Gridded(Linear()));
+      Xg(s) = [xitp[s], yitp[s], vxitp[s], vyitp[s]];
+    end
+
+    ### WHY DO WE NEED THIS???
+
+    ## Construct interpolant for exit time:    ## Maybe we don't need to? It should be
+    ## given from the original ODE evolution...
+
+    u1 = u[k-1]; u2 = u[k];
+    s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1; sout = s1+0.5*spread;
+
+    if spread <= 1e-4 || norm(u1 - u2, 2) <= 1e-4
+      if length(u1)  == 3
+        return Xgtheta,sout;
+      end
+      if length(u1) == 4
+        return Xg,sout;
+      end
+    end
+
+    # u1 = u[end-1]; u2 = uf;
+    # s1 = s[end-1][1]; s2 = s[end][1]; sf = s2-s1;
+
+    # Need more data points (specifically 5) for 4th order:
+    dt = spread/4.0;
+    tspan = 0:dt:spread;
+    # sp,up = ODE.ode45(gaussianmetric,u1,tspan);
+    s,u = ode45(metric,u1,tspan,points=:specified);    # tspan only ensures at least 5 pts
+    ## Need to find the times because otherwise, Least Squares is singular.
+    # k2 = find(x -> x == tspan[2],s);
+    # k3 = find(x -> x == tspan[3],s);
+    # k4 = find(x -> x == tspan[4],s);
+    # index = [1 k2[1] k3[1] k4[1] length(s)];
+
+    # up = u[index]; sp = s[index] + s1;
+    up = u[1:5]; sp = s[1:5] + s1;
+    up[end] = u2; sp[end] = s2;
+
+    # Interpolate positions:
+    xp = map( v -> v[1], up);
+    xI = polyfit(sp,xp);
+    yp = map( v-> v[2], up);
+    yI = polyfit(sp, yp);
+
+    uf = u2; # Need to use for corner cases, if both |x|,|y| > 1.
+
+    # Because it's not root finding the exit point:
+    if abs(uf[1]) >= 1  # x-exit
+      dom = xI - sign(u2[1]);
+      dxI = polyder(xI);
+      sout = newtonbisection(dom, dxI, s1, s2, 1e-5);
+      # uf[1] = xI(sout); uf[2] = yI(sout);  # Don't need exit data exactly...
+    end
+
+    if abs(uf[2]) >= 1  # Also to account for if y exits before x.
+      dom = yI - sign(uf[2]);
+      dyI = polyder(yI);
+      sout = newtonbisection(dom, dyI, s1, s2, 1e-5);
+      # uf[1] = xI(sout); uf[2] = yI(sout); # Don't need exit data
+    end
+
+
+    if length(u0) == 3
+      return Xgtheta,sout;
+    end
+
+    if length(u0) == 4
+      return Xg,sout;
+    end
 
 end
 
