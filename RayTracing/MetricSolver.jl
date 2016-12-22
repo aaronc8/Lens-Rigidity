@@ -10,7 +10,7 @@ function GradHessFFT(cxy::Array{Float64,2},p0,pf)
 
   fftcxy = fft(cxy[1:end-1, 1:end-1]);
   fftcxy = fftshift(fftcxy);
-  hy,hx = size(fftcxy);   ## We will only return the middle two quarters.
+  hy,hx = size(fftcxy);   ## We will only return the middle two quarters. WHY...?
   fftgradcxy = zeros(Complex{Float64},hy,hx,2);
 
 # x,y both in [p0,pf]
@@ -169,7 +169,9 @@ end
 ###############################
 
 
-function makeHamiltonian(metric::Function,dmetric::Function, theta)
+function makeHamiltonian(metric::Function,dmetric::Function, theta::Bool)
+  # NOTE: in this case, I think that theta needs to be an optional parameter
+  # with a default value
 # function that gives back a the derivative of the Hamiltonian
 # I'm not sure if this is fast though, I'm adding some typing
   @inline function dH(s::Float64,u::Array{Float64,1})
@@ -397,16 +399,20 @@ function geodesicJacobian(M::Function,X::Function,J0,sout)
 # Since we have the Group Property, I don't think we need to specify initial s?
 # Nor do we need J to be a function of X because it's inherent in M(X).
 
-function F(s,J)
+# Define the source term
+@inline function F(s::Float64,J::Array{Float64,1})
   n = length(J0[1,:]);
   J = reshape(J,n,n);   # If already square, does nothing.
   return (M(X(s))*J)[:];   # This is the RHS of the ODE for J, also in vector form.
 end
 
+# run the ode solver
 s,J = ode45(F,J0[:],[0.0,sout]);
 knots = (s,);
 
-function Jacobian(t)
+#NOTE: this should be encapsulated in a type
+# it makes a new interp object
+@inline function Jacobian(t::Float64)
   Jac = zeros(size(J0));
   for k = 1:length(J0)   # Maybe Interpolations.jl can actually interpolate vector valued fns, but not sure, thought it failed before.
     Jcomp = map(a -> a[k], J);
@@ -716,7 +722,8 @@ end
 #####################################
 ## Put all the Kni together.
 
-function MismatchSystem(bdy,cn,gradcn,hesscn,Nedge,Nangle,bexact,sout)
+function MismatchSystem(bdy,cn::Function,gradcn::Function,
+                            hesscn,Nedge,Nangle,bexact,sout)
 # Gather the exit data mismatch for the square problem.
 # The Ray Data should be in order E,N,W,S (counterclockwise).
 
@@ -746,6 +753,7 @@ b = zeros(16*(Nedge-1)*(Nangle-1));  # Will reshape to length of M's column.
           JE = geodesicJacobian(M,XE,J0,sEout);
           RayData = linearMismatch(JE,XE,sout[rowcount],cn,gradcn,Nedge);
           L2err = norm(XE(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount],2)^2;
+          # the residual is being weghted in here!
           A[4*(rowcount-1)+1:4*rowcount, :] = RayData./L2err;
           b[4*(rowcount-1)+1:4*rowcount] = (XE(sout[rowcount]) - bexact[4*(rowcount-1)+1:4*rowcount])./L2err;
           rowcount = rowcount + 1;
