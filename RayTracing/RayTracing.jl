@@ -192,75 +192,75 @@ end
 # Gather the exit data for the incidence data along the
 # West(left),North(top),East(right),South(bottom) edges.
 
-dl = 2/Nedge;
-dphi = pi/Nangle;
+  dl = 2/Nedge;
+  dphi = pi/Nangle;
 
-# this needs to be an array of many dimensions
-# otherwise most of the time is spent in allocation
-# the main idea would be to use a shared Array in here
+  # this needs to be an array of many dimensions
+  # otherwise most of the time is spent in allocation
+  # the main idea would be to use a shared Array in here
 
-# number of elements per coordinate of the scattering relation
-numel = thetaTF ? 4 : 5;
-uW = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
-uS = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
-uE = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
-uN = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  # number of elements per coordinate of the scattering relation
+  numel = thetaTF ? 4 : 5;
+  uW = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uS = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uE = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uN = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
 
-# uW = Array{Array}((Nedge-1),(Nangle-1));
-# uN = Array{Array}((Nedge-1),(Nangle-1));
-# uS = Array{Array}((Nedge-1),(Nangle-1));
-# uE = Array{Array}((Nedge-1),(Nangle-1));
-# For the cells, each row is a point on the boundary edge and each collumn is
-# an angle of incidence.
-#  # Only for left edge!
-# @everywhere @inline u0W(i::Int64, j::Int64) = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];
-#  # Only for bottom edge!
-# @everywhere @inline u0S(i::Int64, j::Int64) = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];
-# # Only for right edge!
-# @everywhere @inline u0E(i::Int64, j::Int64) = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];
-#  # Only for top edge!
-# @everywhere @inline u0N(i::Int64, j::Int64) = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];
+  # uW = Array{Array}((Nedge-1),(Nangle-1));
+  # uN = Array{Array}((Nedge-1),(Nangle-1));
+  # uS = Array{Array}((Nedge-1),(Nangle-1));
+  # uE = Array{Array}((Nedge-1),(Nangle-1));
+  # For the cells, each row is a point on the boundary edge and each collumn is
+  # an angle of incidence.
+  #  # Only for left edge!
+  # @everywhere @inline u0W(i::Int64, j::Int64) = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];
+  #  # Only for bottom edge!
+  # @everywhere @inline u0S(i::Int64, j::Int64) = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];
+  # # Only for right edge!
+  # @everywhere @inline u0E(i::Int64, j::Int64) = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];
+  #  # Only for top edge!
+  # @everywhere @inline u0N(i::Int64, j::Int64) = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];
 
-# @everywhere dsF(i::Int64) = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
+  # @everywhere dsF(i::Int64) = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
 
 
-if thetaTF == false
-  for i = 1:Nedge-1
-      ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
-      for j = 1:Nangle-1
-          u0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   # Only for left edge!
-          #u0 = u0W(i,j)
-          @inbounds uW[:,i,j] = squaregaussianrelation(metric,u0,ds);
-          u0 = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];   # Only for bottom edge!
-          #u0 = u0S(i,j)
-          @inbounds uS[:,i,j] = squaregaussianrelation(metric,u0,ds);
-          u0 = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];   # Only for right edge!
-          #u0 = u0E(i,j)
-          @inbounds uE[:,i,j]= squaregaussianrelation(metric,u0,ds);
-          u0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   # Only for top edge!
-          #u0 = u0N(i,j)
-          @inbounds uN[:,i,j] = squaregaussianrelation(metric,u0,ds);
-      end
+  if thetaTF == false
+    for i = 1:Nedge-1
+        ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
+        for j = 1:Nangle-1
+            u0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   # Only for left edge!
+            #u0 = u0W(i,j)
+            @inbounds uW[:,i,j] = squaregaussianrelation(metric,u0,ds);
+            u0 = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];   # Only for bottom edge!
+            #u0 = u0S(i,j)
+            @inbounds uS[:,i,j] = squaregaussianrelation(metric,u0,ds);
+            u0 = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];   # Only for right edge!
+            #u0 = u0E(i,j)
+            @inbounds uE[:,i,j]= squaregaussianrelation(metric,u0,ds);
+            u0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   # Only for top edge!
+            #u0 = u0N(i,j)
+            @inbounds uN[:,i,j] = squaregaussianrelation(metric,u0,ds);
+        end
+    end
   end
-end
 
-if thetaTF == true
-  for i = 1:Nedge-1
-      ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
-      for j = 1:Nangle-1
-          u0 = [-1;1-i*dl;j*dphi-pi/2];   # 3-vars Left
-          @inbounds uW[:,i,j] = squaregaussianrelation(metric,u0,ds);
-          u0 = [-1+i*dl;-1;j*dphi];   # 3-vars Bottom
-          @inbounds uS[:,i,j] = squaregaussianrelation(metric,u0,ds);
-          u0 = [1;-1+i*dl;j*dphi+pi/2];   # 3-vars Right
-          @inbounds uE[:,i,j]= squaregaussianrelation(metric,u0,ds);
-          u0 = [1-i*dl;1;-j*dphi];   # 3-vars Top
-          @inbounds uN[:,i,j] = squaregaussianrelation(metric,u0,ds);
-      end
+  if thetaTF == true
+    for i = 1:Nedge-1
+        ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
+        for j = 1:Nangle-1
+            u0 = [-1;1-i*dl;j*dphi-pi/2];   # 3-vars Left
+            @inbounds uW[:,i,j] = squaregaussianrelation(metric,u0,ds);
+            u0 = [-1+i*dl;-1;j*dphi];   # 3-vars Bottom
+            @inbounds uS[:,i,j] = squaregaussianrelation(metric,u0,ds);
+            u0 = [1;-1+i*dl;j*dphi+pi/2];   # 3-vars Right
+            @inbounds uE[:,i,j]= squaregaussianrelation(metric,u0,ds);
+            u0 = [1-i*dl;1;-j*dphi];   # 3-vars Top
+            @inbounds uN[:,i,j] = squaregaussianrelation(metric,u0,ds);
+        end
+    end
   end
-end
 
-return uW, uS, uE, uN;
+  return uW, uS, uE, uN;
 
 end
 
@@ -472,23 +472,23 @@ function CGscatteringrelation(Nrotate, Nangle)
 # Gather the exit data for the incidence data along the
 # West(left),North(top),East(right),South(bottom) edges.
 
-ds=1;
-dtheta = 2*pi/Nrotate;
-dphi = pi/Nangle;
-uTotExit = Array{Any}(Nrotate - 1, Nangle - 1);
-# For the cells, each row is a point on the boundary edge and each collumn is
-# an angle of incidence.
+  ds=1;
+  dtheta = 2*pi/Nrotate;
+  dphi = pi/Nangle;
+  uTotExit = Array{Any}(Nrotate - 1, Nangle - 1);
+  # For the cells, each row is a point on the boundary edge and each collumn is
+  # an angle of incidence.
 
 
-for i = 1:Nrotate-1
-    for j = 1:Nangle-1
-      ds = 2*j*dphi*(Nangle-j)/Nangle;
-      u0 = [cos(i*dtheta), sin(i*dtheta), cos(i*dtheta + pi/2 + j*dphi), sin(i*dtheta + pi/2 + j*dphi)];
-      uTotExit[i,j] = circlegaussianrelation(u0,ds);
-    end
-end
+  for i = 1:Nrotate-1
+      for j = 1:Nangle-1
+        ds = 2*j*dphi*(Nangle-j)/Nangle;
+        u0 = [cos(i*dtheta), sin(i*dtheta), cos(i*dtheta + pi/2 + j*dphi), sin(i*dtheta + pi/2 + j*dphi)];
+        uTotExit[i,j] = circlegaussianrelation(u0,ds);
+      end
+  end
 
-return uTotExit;
+  return uTotExit;
 
 end
 
@@ -505,9 +505,10 @@ function newtonbisection(f::Function,df::Function,
   p = a;
   iter = 1;
   while abs(f(p)[1]) > tol && iter < maxiter
-     iter += 1;
-     #p = p - f(p)/df(p);
-     p -= f(p)/df(p);
+
+    iter += 1;
+    #p = p - f(p)/df(p);
+    p -= f(p)/df(p);
 
     (p>b) && (p = (a+b)/2);
     # if p>b
@@ -550,7 +551,7 @@ end
 @everywhere scatteringrelation_shared_chunk!(U,u0F,dsF,metric) = scatteringrelation_chunk!(U,u0F,dsF,metric, myrange(U)...)
 
 @everywhere function scatteringrelation_chunk!(U::SharedArray, u0Function::Function,
-                                               dsF::Function,metric::Function,
+                                               dsF::Function, metric::Function,
                                                irange::UnitRange{Int64}, jrange::UnitRange{Int64})
     #@show (irange, jrange)  # display so we can see what's happening
 
@@ -565,20 +566,20 @@ end
 
 
 ######################################################
-######### Parallel communication function wrappers ###
+########### Parallel communication macros ############
 
-function sendtosimple(p::Int, nm, val)
-  ref = @spawnat(p, eval(Main, Expr(:( =), nm, val)))
+function sendtosimple(p::Int, name, val)
+  ref = @spawnat(p, eval(Main, Expr(:( =), name, val)))
 end
 
-macro sendto(p, nm, val)
-  return :(sendtosimple($p, $nm, $val))
+macro sendto(p, name, val)
+  return :(sendtosimple($p, $name, $val))
 end
 
-macro broadcast(nm, val)
+macro broadcast(name, val)
   quote
   @sync for p in workers()
-    @async sendtosimple(p, $nm, $val)
+    @async sendtosimple(p, $name, $val)
   end
   end
 end
