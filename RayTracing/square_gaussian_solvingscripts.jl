@@ -1,10 +1,10 @@
 ## Scripts to solve the Lens Rigidity Problem on the square.
-using ODE
-using PyPlot
-using Polynomials
-using Interpolations
-include("RayTracing.jl");
-include("MetricSolver.jl");
+@everywhere using ODE
+@everywhere using PyPlot
+@everywhere using Polynomials
+@everywhere using Interpolations
+@everywhere include("RayTracing.jl");
+@everywhere include("MetricSolver.jl");
 
 heaviside(x::AbstractFloat) = ifelse(x < 0, zero(x), ifelse(x > 0, one(x), oftype(x,0.5)));
 square(x,y) =  - heaviside(x.+1.0).*heaviside(-x.+1.0).*heaviside(-y.+1.0).*heaviside(y.+1.0);
@@ -12,9 +12,9 @@ dxsquare(x,y) = -sign(x).*(4.0.*heaviside(x.+1.0).*heaviside(-x.-1.0)) - sign(x)
 dysquare(x,y) = -sign(y).*(4.0.*heaviside(y.+1.0).*heaviside(-y.-1.0)) - sign(y).*(4.0.*heaviside(y.-1.0).*heaviside(-y.+1.0))
 gradsquare(x,y) = [ dxsquare(x,y) , dysquare(x,y) ];
 
-N = 5;
-Nedge = 2^N;   # number of partitions of sides.
-Nangle = 2^N;   # number of partitions of angle.
+@everywhere N = 5;
+@everywhere Nedge = 2^N;   # number of partitions of sides.
+@everywhere Nangle = 2^N;   # number of partitions of angle.
 dphi = pi/Nangle;   # This needs to be taken better care of
 dl = 2/Nedge;
 ds = 2;
@@ -97,10 +97,10 @@ display(display(maximum(abs(gradcxyExact[:,:,1]-gradcspd(x,y)[1] ))))
 ###############################################################################
 # Construct the Hamiltonian system using the interpolated metric:
 # How to get Julia to output a function?? If dH is done manually, works fine...
-@inline metric(x::Float64,y::Float64)  = cspd(x,y).^2;
-@inline dmetric(x::Float64,y::Float64) = 2*cspd(x,y).*gradcspd(x,y);
-dHtheta = makeHamiltonian(metric,dmetric,true);  # Or:
-dH = makeHamiltonian(metric,dmetric,false);
+@everywhere @inline metric(x::Float64,y::Float64)  = cspd(x,y).^2;
+@everywhere @inline dmetric(x::Float64,y::Float64) = 2*cspd(x,y).*gradcspd(x,y);
+@everywhere dHtheta = makeHamiltonian(metric,dmetric,true);  # Or:
+@everywhere dH = makeHamiltonian(metric,dmetric,false);
 ## And checked its ray evolution is okay now
 
 figure(1)
@@ -238,6 +238,8 @@ plot(threevar[1,:][1][:], threevar[2,:][1][:], marker = "x", color = "g");
 # M = HamiltonianHess(metric,dmetric,false);
 # Mtheta = HamiltonianHess(metric,dmetric,true);
 M = HamiltonianHess(cspd,gradcspd,hesscspd);
+
+# initial condition for the Jacobian
 J0 = eye(4,4); # J0theta = eye(3,3);
 Jacobian = geodesicJacobian(M,Xg,J0,sout);    # It is outputted as a 4x4, not a 16x1.
 
