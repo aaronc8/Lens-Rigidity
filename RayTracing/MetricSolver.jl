@@ -88,6 +88,23 @@ end
 
 ###################################################
 
+
+# type metric
+
+#   # representation of the metric
+#   c::Array{Float64,2}
+#   dc::Array{Float64,3}
+#   d2c::Array{Float64,4}
+
+#   # not sure
+#   cInterp::Function
+#   gradcInterp::Function
+#   hesscInterp::Function
+
+# end
+
+
+
 function generateMetric(knots,cxy::Array{Float64,2},
                               dcxy::Array{Float64,3},
                               d2cxy::Array{Float64,4};
