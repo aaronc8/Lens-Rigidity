@@ -35,13 +35,13 @@ ds = 2;
 # cxy = cxy[Nedge+1:3*Nedge+1, Nedge+1:3*Nedge+1]
 
 # Defining the physical domain in which the inversion will take place.
-x = -1:2/Nedge:1;
-y = x;
+@everywhere x=-1:2/Nedge:1;
+@everywhere y=x;
 
 # Defining the wavespeed
-cxy = exp(0.5.*( x.^2 .+ y'.^2 ));
+@everywhere cxy=exp(0.5.*( x.^2 .+ y'.^2 ));
 # Computing the gradient using finite differences
-gradcxy,hesscxy = GradHessFinDiff(cxy);
+@everywhere gradcxy,hesscxy=GradHessFinDiff(cxy);
 
 
 gradcxyExact = zeros(length(x),length(y),2);
@@ -61,12 +61,12 @@ gradcxyExact[:,:,2] = cxy.*(0*x'.+ y);
 # c2xy = ones(Nedge,Nedge);
 
 # defining the mesh
-knots = ([xi for xi in x ], [yi for yi in y]);
+@everywhere knots=([xi for xi in x ], [yi for yi in y]);
 # metric,dmetric = generateMetric(knots,cxy);
 # cspd,gradcspd,hesscspd = generateMetric(cxy,gradcxy,hesscxy);
 
 # building interpolation objects
-cspd,gradcspd,hesscspd = generateMetric(knots,cxy,gradcxy,hesscxy);
+@everywhere cspd,gradcspd,hesscspd=generateMetric(knots,cxy,gradcxy,hesscxy);
 
 x = -1:2/Nedge:1;   # For the actual grid ...
 y = x;
@@ -97,10 +97,10 @@ display(display(maximum(abs(gradcxyExact[:,:,1]-gradcspd(x,y)[1] ))))
 ###############################################################################
 # Construct the Hamiltonian system using the interpolated metric:
 # How to get Julia to output a function?? If dH is done manually, works fine...
-@everywhere @inline metric(x::Float64,y::Float64)  = cspd(x,y).^2;
-@everywhere @inline dmetric(x::Float64,y::Float64) = 2*cspd(x,y).*gradcspd(x,y);
-@everywhere dHtheta = makeHamiltonian(metric,dmetric,true);  # Or:
-@everywhere dH = makeHamiltonian(metric,dmetric,false);
+@everywhere metric(x::Float64,y::Float64)=cspd(x,y).^2;
+@everywhere dmetric(x::Float64,y::Float64)=2*cspd(x,y).*gradcspd(x,y);
+@everywhere dHtheta=makeHamiltonian(metric,dmetric,true);  # Or:
+@everywhere dH=makeHamiltonian(metric,dmetric,false);
 ## And checked its ray evolution is okay now
 
 figure(1)

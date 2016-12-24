@@ -75,7 +75,7 @@ end
 #####################################################################
 
 
-@inline function squaregaussianrelation(metric::Function,u0::Array{Float64,1},ds::Float64; order::Int64=4)
+function squaregaussianrelation(metric::Function,u0::Array{Float64,1},ds::Float64; order::Int64=4)
   # This will take an initial condition and evolve the ODE for the scattering
   # relation. It will also make sure to get when it exits, and return the
   # exit position and velocity.
@@ -548,11 +548,15 @@ end
     1:size(q)[end-1], splits[idx]+1:splits[idx+1]
 end
 
-@everywhere scatteringrelation_shared_chunk!(U,u0F,dsF,metric) = scatteringrelation_chunk!(U,u0F,dsF,metric, myrange(U)...)
+@everywhere scatteringrelation_shared_chunk!(U::SharedArray,
+                                             u0F::Function,
+                                             dsF::Function,
+                                             metric::Function) = scatteringrelation_chunk!(U,u0F,dsF,metric, myrange(U)...)
 
 @everywhere function scatteringrelation_chunk!(U::SharedArray, u0Function::Function,
                                                dsF::Function, metric::Function,
-                                               irange::UnitRange{Int64}, jrange::UnitRange{Int64})
+                                               irange::UnitRange{Int64},
+                                               jrange::UnitRange{Int64})
     #@show (irange, jrange)  # display so we can see what's happening
 
     for i in irange
