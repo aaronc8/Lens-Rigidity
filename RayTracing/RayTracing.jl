@@ -49,12 +49,18 @@ end
   # u(1) = x coordinate, u(2) = y coordinate,
   # u(3) = x velocity, u(4) = y velocity.
   # This has no bearing on the domain anyways!
-      dH = zeros(3);
+      dH = zeros(Float64,3);
+
+      cons = exp(u[1].^2 + u[2].^2);
       # The positions:
-      dH[1] = cos(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
-      dH[2] = sin(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
+      # dH[1] = cos(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
+      # dH[2] = sin(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
+      dH[1] = cos(u[3])*cons;
+      dH[2] = sin(u[3])*cons;
+
+      cons2 = exp(u[1].^2/2 + u[2].^2/2);
       # The momenta:
-      dH[3] = (u[1].*sin(u[3]) - u[2].*cos(u[3])).*exp(u[1].^2/2 + u[2].^2/2);
+      dH[3] = (u[1].*dH[2] - u[2].*dH[1])./cons2;
 
       return dH;
 end
@@ -275,7 +281,7 @@ end
   @everywhere dphi = pi/Nangle;
 
   # number of elements per coordinate of the scattering relation
-  numel = thetaTF? 4 : 5;
+  numel = thetaTF ? 4 : 5;
 
   # Allocating the Arrays to store the data
   uW = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
@@ -285,69 +291,73 @@ end
 
   # For the cells, each row is a point on the boundary edge and each collumn is
   # an angle of incidence.
-  # Only for left edge!
-  @everywhere @inline u0W(i::Int64, j::Int64) = [-1                ;
-                                                  1-i*dl           ;
-                                                 cos(j*dphi - pi/2);
-                                                 sin(j*dphi - pi/2)];
-  # Only for bottom edge!
-  @everywhere @inline u0S(i::Int64, j::Int64) = [-1 + i*dl  ;
-                                                 -1         ;
-                                                 cos(j*dphi);
-                                                 sin(j*dphi)];
-  # Only for right edge!
-  @everywhere @inline u0E(i::Int64, j::Int64) = [ 1                ;
-                                                 -1+i*dl           ;
-                                                 cos(j*dphi + pi/2);
-                                                 sin(j*dphi + pi/2)];
-  # Only for top edge!
-  @everywhere @inline u0N(i::Int64, j::Int64) = [1 - i*dl    ;
-                                                 1           ;
-                                                 cos(-j*dphi);
-                                                 sin(-j*dphi)];
+    # Computing the for loop within each
+  if thetaTF == false
+    # Only for left edge!
+    @everywhere @inline u0W(i::Int64, j::Int64) = [-1                ;
+                                                    1-i*dl           ;
+                                                   cos(j*dphi - pi/2);
+                                                   sin(j*dphi - pi/2)];
+    # Only for bottom edge!
+    @everywhere @inline u0S(i::Int64, j::Int64) = [-1 + i*dl  ;
+                                                   -1         ;
+                                                   cos(j*dphi);
+                                                   sin(j*dphi)];
+    # Only for right edge!
+    @everywhere @inline u0E(i::Int64, j::Int64) = [ 1                ;
+                                                   -1+i*dl           ;
+                                                   cos(j*dphi + pi/2);
+                                                   sin(j*dphi + pi/2)];
+    # Only for top edge!
+    @everywhere @inline u0N(i::Int64, j::Int64) = [1 - i*dl    ;
+                                                   1           ;
+                                                   cos(-j*dphi);
+                                                   sin(-j*dphi)];
+  else
+    # Only for left edge!
+    @everywhere @inline u0W(i::Int64, j::Int64) = [-1;
+                                                    1-i*dl;
+                                                    j*dphi-pi/2];
+    # Only for bottom edge!
+    @everywhere @inline u0S(i::Int64, j::Int64) = [-1+i*dl;
+                                                   -1;
+                                                    j*dphi];
+    # Only for right edge!
+    @everywhere @inline u0E(i::Int64, j::Int64) = [ 1;
+                                                   -1+i*dl;
+                                                    j*dphi+pi/2];
+    # Only for top edge!
+    @everywhere @inline u0N(i::Int64, j::Int64) = [ 1-i*dl;
+                                                    1;
+                                                   -j*dphi];
+
+  end
+
   # function for Dsf (it will be passed to the target node)
   # For bad points near corners.
   @everywhere dsF(i::Int64) = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
 
-  # Computing the for loop within each
-  if thetaTF == false
-    @sync begin
-          for p in procs(uW)
-              @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uW,u0W,dsF,metric)
-          end
-      end
-    @sync begin
-          for p in procs(uS)
-              @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uS,u0S,dsF,metric)
-          end
-      end
-    @sync begin
-          for p in procs(uE)
-              @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uE,u0E,dsF,metric)
-          end
-      end
-    @sync begin
-          for p in procs(uN)
-              @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uN,u0N,dsF,metric)
-          end
-      end
-  end
 
-  if thetaTF == true
-    for i = 1:Nedge-1
-        ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
-        for j = 1:Nangle-1
-            u0 = [-1;1-i*dl;j*dphi-pi/2];   # 3-vars Left
-            uW[:,i,j] = squaregaussianrelation(metric,u0,ds);
-            u0 = [-1+i*dl;-1;j*dphi];   # 3-vars Bottom
-            uS[:,i,j] = squaregaussianrelation(metric,u0,ds);
-            u0 = [1;-1+i*dl;j*dphi+pi/2];   # 3-vars Right
-            uE[:,i,j]= squaregaussianrelation(metric,u0,ds);
-            u0 = [1-i*dl;1;-j*dphi];   # 3-vars Top
-            uN[:,i,j] = squaregaussianrelation(metric,u0,ds);
+  @sync begin
+        for p in procs(uW)
+            @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uW,u0W,dsF,metric)
         end
     end
-  end
+  @sync begin
+        for p in procs(uS)
+            @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uS,u0S,dsF,metric)
+        end
+    end
+  @sync begin
+        for p in procs(uE)
+            @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uE,u0E,dsF,metric)
+        end
+    end
+  @sync begin
+        for p in procs(uN)
+            @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uN,u0N,dsF,metric)
+        end
+    end
 
   return uW, uS, uE, uN;
 
@@ -495,8 +505,8 @@ end
 
 #################################################
 
-
-function newtonbisection(f::Function,df::Function,
+# If f and fd are polynomials we need to use the companion matrix method
+function newtonbisection(f,df,
                          a::Float64,b::Float64,
                          tol::Float64; # this should be optional
                          maxiter::Int64 = 100)
@@ -588,5 +598,29 @@ macro broadcast(name, val)
   end
 end
 
+getfrom(p::Int, nm::Symbol; mod=Main) = fetch(@spawnat(p, getfield(mod, nm)))
+
+function passobj(src::Int, target::Vector{Int}, nm::Symbol;
+                 from_mod=Main, to_mod=Main)
+    r = RemoteRef(src)
+    @spawnat(src, put!(r, getfield(from_mod, nm)))
+    for to in target
+        @spawnat(to, eval(to_mod, Expr(:(=), nm, fetch(r))))
+    end
+    nothing
+end
+
+
+function passobj(src::Int, target::Int, nm::Symbol; from_mod=Main, to_mod=Main)
+    passobj(src, [target], nm; from_mod=from_mod, to_mod=to_mod)
+end
+
+
+function passobj(src::Int, target, nms::Vector{Symbol};
+                 from_mod=Main, to_mod=Main)
+    for nm in nms
+        passobj(src, target, nm; from_mod=from_mod, to_mod=to_mod)
+    end
+end
 
 #####################################################################
