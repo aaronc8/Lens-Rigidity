@@ -1,18 +1,42 @@
 ## These are functions for Ray Tracing with just two basic shapes, Square and Circle.
 ## Mainly, just the square, because Circles are smooth and we have SmoothRayTracing.jl
 
-function gaussianmetric(s,u)
-# u(1) = x coordinate, u(2) = y coordinate,
-# u(3) = x velocity, u(4) = y velocity.
+## TODO: add optional higher order ODE solvers
+
+@inline function gaussianmetric(s::Float64,u::Array{Float64,1})
+# Function that computes
+# \partial_x H(x, xi) and \partial_xi H(x,xi)
+# when the Hamiltonian is given by a zero mean gaussian
+# with sigma = 2.
+# input :     s:time
+#             u: position in phase space where
+#             u(1) = x coordinate, u(2) = y coordinate,
+#             u(3) = x velocity, u(4) = y velocity.
+# output :    dH, vector composed of
+#             \partial_x  H(u[1:2], u[3:4]) and
+#             \partial_xi H(u[1:2], u[3:4]) at the point s
 # This has no bearing on the domain anyways!
 
-    dH = zeros(4);
+    dH = zeros(Float64,4);
+
+    # precomputing the exponential
+    cons = exp(u[1].^2 + u[2].^2);
+
     # The positions:
-    dH[1] = u[3].*exp(u[1].^2 + u[2].^2);
-    dH[2] = u[4].*exp(u[1].^2 + u[2].^2);
+    dH[1:2] = cons*u[3:4];
+
+    # The line above codifies the following code
+    # dH[1] = u[3].*exp(u[1].^2 + u[2].^2);
+    # dH[2] = u[4].*exp(u[1].^2 + u[2].^2);
+
+    # precomputing the multiplication factor
+    cons2 = -(u[3].^2 + u[4].^2)*cons;
     # The momenta:
-    dH[3] = -(u[3].^2 + u[4].^2).*u[1].*exp(u[1].^2 + u[2].^2);
-    dH[4] = -(u[3].^2 + u[4].^2).*u[2].*exp(u[1].^2 + u[2].^2);
+    dH[3:4] = cons2*u[1:2]
+
+    # The line above codifies the following code
+    # dH[3] = -(u[3].^2 + u[4].^2).*u[1].*exp(u[1].^2 + u[2].^2);
+    # dH[4] = -(u[3].^2 + u[4].^2).*u[2].*exp(u[1].^2 + u[2].^2);
     return dH
 
 end
@@ -21,16 +45,22 @@ end
 # If we instead use just 3 variables where the velocity is all encapsulated in
 # just the direction, theta = u[3].
 
-function gaussianmetrictheta(s,u)
+@inline function gaussianmetrictheta(s::Float64,u::Array{Float64,1})
   # u(1) = x coordinate, u(2) = y coordinate,
   # u(3) = x velocity, u(4) = y velocity.
   # This has no bearing on the domain anyways!
-      dH = zeros(3);
+      dH = zeros(Float64,3);
+
+      cons = exp(u[1].^2 + u[2].^2);
       # The positions:
-      dH[1] = cos(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
-      dH[2] = sin(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
+      # dH[1] = cos(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
+      # dH[2] = sin(u[3]).*exp(u[1].^2/2 + u[2].^2/2);
+      dH[1] = cos(u[3])*cons;
+      dH[2] = sin(u[3])*cons;
+
+      cons2 = exp(u[1].^2/2 + u[2].^2/2);
       # The momenta:
-      dH[3] = (u[1].*sin(u[3]) - u[2].*cos(u[3])).*exp(u[1].^2/2 + u[2].^2/2);
+      dH[3] = (u[1].*dH[2] - u[2].*dH[1])./cons2;
 
       return dH;
 end
@@ -51,7 +81,7 @@ end
 #####################################################################
 
 
-function squaregaussianrelation(metric::Function,u0,ds)
+function squaregaussianrelation(metric::Function,u0::Array{Float64,1},ds::Float64; order::Int64=4)
   # This will take an initial condition and evolve the ODE for the scattering
   # relation. It will also make sure to get when it exits, and return the
   # exit position and velocity.
@@ -59,11 +89,15 @@ function squaregaussianrelation(metric::Function,u0,ds)
 
   # options = odeset('Events',sgEventsFcn);   #### This is where we have problems??
 
-  s,u = ode45(metric, u0, [0.0,ds]); #options);  # with official ODE.jl
+  if order==4
+    s,u = ode45(metric, u0, [0.0,ds]); #options);  # with official ODE.jl
+  elseif order == 7
+    s,u = ode78(metric, u0, [0.0,ds]);
+  end
   # ~,u = ODE.ode45(gaussianmetric, u0, [0.0,ds], stopevent = (s,u) -> (abs(u[1]) > 1 || abs(u[2]) > 1));
   # [~,u] = ode45(@gaussianmetric, [0,1], u0);  % for example
   # it should be kept adapative for the interval of length
-  heaviside(x::AbstractFloat) = ifelse(x < 0, zero(x), ifelse(x > 0, one(x), oftype(x,0.5)));
+  heaviside(x::Float64) = ifelse(x < 0, zero(x), ifelse(x > 0, one(x), oftype(x,0.5)));
   square(x,y) =  - heaviside(x.+1.0).*heaviside(-x.+1.0).*heaviside(-y.+1.0).*heaviside(y.+1.0);
 
   k = find(x -> ( square(x[1],x[2]) >= -eps() ), u[2:end]);
@@ -116,7 +150,7 @@ end
   dt = spread/4.0;
   tspan = 0:dt:spread;
   # sp,up = ODE.ode45(gaussianmetric,u1,tspan);
-  s,u = ode45(metric,u1,tspan; points=:specified);    # is still being adaptive???
+  s,u = ode45(metric,u1,tspan; points=:specified);    # is still being adaptive... nop???
   up = u[1:5]; sp = s[1:5] + s1;
   up[end] = u2; sp[end] = s2;
   # Interpolate positions:
@@ -159,56 +193,176 @@ end
 ###############################################################
 
 
-function SGscatteringrelation(thetaTF,metric,Nedge, Nangle, ds)
+@everywhere function SGscatteringrelation(thetaTF::Bool,metric::Function,
+                              Nedge::Int64, Nangle::Int64, ds; order::Int=4)
 # Gather the exit data for the incidence data along the
 # West(left),North(top),East(right),South(bottom) edges.
 
-dl = 2/Nedge;
-dphi = pi/Nangle;
-uW = Array{Array}((Nedge-1),(Nangle-1));
-uN = Array{Array}((Nedge-1),(Nangle-1));
-uS = Array{Array}((Nedge-1),(Nangle-1));
-uE = Array{Array}((Nedge-1),(Nangle-1));
-# For the cells, each row is a point on the boundary edge and each collumn is
-# an angle of incidence.
-if thetaTF == false
-  for i = 1:Nedge-1
-      ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
-      for j = 1:Nangle-1
-          u0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   # Only for left edge!
-          uW[i,j] = squaregaussianrelation(metric,u0,ds);
-          u0 = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];   # Only for bottom edge!
-          uS[i,j] = squaregaussianrelation(metric,u0,ds);
-          u0 = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];   # Only for right edge!
-          uE[i,j]= squaregaussianrelation(metric,u0,ds);
-          u0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   # Only for top edge!
-          uN[i,j] = squaregaussianrelation(metric,u0,ds);
-      end
+  dl = 2/Nedge;
+  dphi = pi/Nangle;
+
+  # this needs to be an array of many dimensions
+  # otherwise most of the time is spent in allocation
+  # the main idea would be to use a shared Array in here
+
+  # number of elements per coordinate of the scattering relation
+  numel = thetaTF ? 4 : 5;
+  uW = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uS = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uE = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uN = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+
+  # uW = Array{Array}((Nedge-1),(Nangle-1));
+  # uN = Array{Array}((Nedge-1),(Nangle-1));
+  # uS = Array{Array}((Nedge-1),(Nangle-1));
+  # uE = Array{Array}((Nedge-1),(Nangle-1));
+  # For the cells, each row is a point on the boundary edge and each collumn is
+  # an angle of incidence.
+  #  # Only for left edge!
+  # @everywhere @inline u0W(i::Int64, j::Int64) = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];
+  #  # Only for bottom edge!
+  # @everywhere @inline u0S(i::Int64, j::Int64) = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];
+  # # Only for right edge!
+  # @everywhere @inline u0E(i::Int64, j::Int64) = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];
+  #  # Only for top edge!
+  # @everywhere @inline u0N(i::Int64, j::Int64) = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];
+
+  # @everywhere dsF(i::Int64) = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
+
+
+  if thetaTF == false
+    for i = 1:Nedge-1
+        ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
+        for j = 1:Nangle-1
+            u0 = [-1; 1-i*dl; cos(j*dphi - pi/2); sin(j*dphi - pi/2)];   # Only for left edge!
+            #u0 = u0W(i,j)
+            @inbounds uW[:,i,j] = squaregaussianrelation(metric,u0,ds);
+            u0 = [-1 + i*dl; -1; cos(j*dphi); sin(j*dphi)];   # Only for bottom edge!
+            #u0 = u0S(i,j)
+            @inbounds uS[:,i,j] = squaregaussianrelation(metric,u0,ds);
+            u0 = [1; -1+i*dl; cos(j*dphi + pi/2); sin(j*dphi + pi/2)];   # Only for right edge!
+            #u0 = u0E(i,j)
+            @inbounds uE[:,i,j]= squaregaussianrelation(metric,u0,ds);
+            u0 = [1 - i*dl; 1; cos(-j*dphi); sin(-j*dphi)];   # Only for top edge!
+            #u0 = u0N(i,j)
+            @inbounds uN[:,i,j] = squaregaussianrelation(metric,u0,ds);
+        end
+    end
   end
-end
 
-if thetaTF == true
-  for i = 1:Nedge-1
-      ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
-      for j = 1:Nangle-1
-          u0 = [-1;1-i*dl;j*dphi-pi/2];   # 3-vars Left
-          uW[i,j] = squaregaussianrelation(metric,u0,ds);
-          u0 = [-1+i*dl;-1;j*dphi];   # 3-vars Bottom
-          uS[i,j] = squaregaussianrelation(metric,u0,ds);
-          u0 = [1;-1+i*dl;j*dphi+pi/2];   # 3-vars Right
-          uE[i,j]= squaregaussianrelation(metric,u0,ds);
-          u0 = [1-i*dl;1;-j*dphi];   # 3-vars Top
-          uN[i,j] = squaregaussianrelation(metric,u0,ds);
-      end
+  if thetaTF == true
+    for i = 1:Nedge-1
+        ds = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
+        for j = 1:Nangle-1
+            u0 = [-1;1-i*dl;j*dphi-pi/2];   # 3-vars Left
+            @inbounds uW[:,i,j] = squaregaussianrelation(metric,u0,ds);
+            u0 = [-1+i*dl;-1;j*dphi];   # 3-vars Bottom
+            @inbounds uS[:,i,j] = squaregaussianrelation(metric,u0,ds);
+            u0 = [1;-1+i*dl;j*dphi+pi/2];   # 3-vars Right
+            @inbounds uE[:,i,j]= squaregaussianrelation(metric,u0,ds);
+            u0 = [1-i*dl;1;-j*dphi];   # 3-vars Top
+            @inbounds uN[:,i,j] = squaregaussianrelation(metric,u0,ds);
+        end
+    end
   end
+
+  return uW, uS, uE, uN;
+
 end
 
-return uW, uS, uE, uN;
+
+
+@everywhere function SGscatteringRelationParallel(thetaTF::Bool,metric::Function,
+                              Nedge::Int64, Nangle::Int64, ds; order::Int=4)
+# Gather the exit data for the incidence data along the
+# West(left),North(top),East(right),South(bottom) edges.
+
+  @everywhere dl = 2/Nedge;
+  @everywhere dphi = pi/Nangle;
+
+  # number of elements per coordinate of the scattering relation
+  numel = thetaTF ? 4 : 5;
+
+  # Allocating the Arrays to store the data
+  uW = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uS = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uE = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+  uN = SharedArray(Float64,(numel,Nedge-1,Nangle-1));
+
+  # For the cells, each row is a point on the boundary edge and each collumn is
+  # an angle of incidence.
+    # Computing the for loop within each
+  if thetaTF == false
+    # Only for left edge!
+    @everywhere @inline u0W(i::Int64, j::Int64) = [-1                ;
+                                                    1-i*dl           ;
+                                                   cos(j*dphi - pi/2);
+                                                   sin(j*dphi - pi/2)];
+    # Only for bottom edge!
+    @everywhere @inline u0S(i::Int64, j::Int64) = [-1 + i*dl  ;
+                                                   -1         ;
+                                                   cos(j*dphi);
+                                                   sin(j*dphi)];
+    # Only for right edge!
+    @everywhere @inline u0E(i::Int64, j::Int64) = [ 1                ;
+                                                   -1+i*dl           ;
+                                                   cos(j*dphi + pi/2);
+                                                   sin(j*dphi + pi/2)];
+    # Only for top edge!
+    @everywhere @inline u0N(i::Int64, j::Int64) = [1 - i*dl    ;
+                                                   1           ;
+                                                   cos(-j*dphi);
+                                                   sin(-j*dphi)];
+  else
+    # Only for left edge!
+    @everywhere @inline u0W(i::Int64, j::Int64) = [-1;
+                                                    1-i*dl;
+                                                    j*dphi-pi/2];
+    # Only for bottom edge!
+    @everywhere @inline u0S(i::Int64, j::Int64) = [-1+i*dl;
+                                                   -1;
+                                                    j*dphi];
+    # Only for right edge!
+    @everywhere @inline u0E(i::Int64, j::Int64) = [ 1;
+                                                   -1+i*dl;
+                                                    j*dphi+pi/2];
+    # Only for top edge!
+    @everywhere @inline u0N(i::Int64, j::Int64) = [ 1-i*dl;
+                                                    1;
+                                                   -j*dphi];
+
+  end
+
+  # function for Dsf (it will be passed to the target node)
+  # For bad points near corners.
+  @everywhere dsF(i::Int64) = dl*2*i*(Nedge-i)/Nedge;   # For bad points near corners.
+
+
+  @sync begin
+        for p in procs(uW)
+            @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uW,u0W,dsF,metric)
+        end
+    end
+  @sync begin
+        for p in procs(uS)
+            @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uS,u0S,dsF,metric)
+        end
+    end
+  @sync begin
+        for p in procs(uE)
+            @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uE,u0E,dsF,metric)
+        end
+    end
+  @sync begin
+        for p in procs(uN)
+            @async remotecall_fetch(scatteringrelation_shared_chunk!,p,uN,u0N,dsF,metric)
+        end
+    end
+
+  return uW, uS, uE, uN;
 
 end
 
-
-#####################################################################
 
 
 function circlegaussianrelation(u0,ds)
@@ -217,68 +371,68 @@ function circlegaussianrelation(u0,ds)
 # exit position and velocity.
 # Maybe use a fixed step so that way it's more modulated?
 
-# options = odeset('Events',sgEventsFcn);   #### This is where we have problems??
+  # options = odeset('Events',sgEventsFcn);   #### This is where we have problems??
 
-# s,u = ODE.ode45(gaussianmetric, u0, [0.0,ds]);  # Legacy ODE
-s,u = ode45(gaussianmetric, u0, [0.0,ds]);
-k = find( x -> x[1]^2 + x[2]^2 > 1, u[2:end]);  # So we don't get the starting pt.
+  # s,u = ODE.ode45(gaussianmetric, u0, [0.0,ds]);  # Legacy ODE
+  s,u = ode45(gaussianmetric, u0, [0.0,ds]);
+  k = find( x -> x[1]^2 + x[2]^2 > 1, u[2:end]);  # So we don't get the starting pt.
 
-# s,u = ODE.ode45(gaussianmetric,u0,[0.0,ds],stopevent = (s,u) -> ( u[1]^2 + u[2]^2 > 1) );
-# uf = u[end];
+  # s,u = ODE.ode45(gaussianmetric,u0,[0.0,ds],stopevent = (s,u) -> ( u[1]^2 + u[2]^2 > 1) );
+  # uf = u[end];
 
-# it should be kept adapative for the interval of length
+  # it should be kept adapative for the interval of length
 
-while isempty(k)
-# while uf[1]^2 + uf[2]^2 < 1
-  uf = u[end];
-  # s,u = ODE.ode45(gaussianmetric,uf,[0.0,ds]);
-  s,u = ode45(gaussianmetric, uf, [0.0,ds]);
-  k = find( x -> x[1]^2 + x[2]^2 > 1, u[2:end]);
-  #s,u = ODE.ode45(gaussianmetric,uf,[0.0,ds],stopevent = (s,u) -> ( u[1]^2 + u[2]^2 > 1) );
-  #uf = u[end];
-end
+  while isempty(k)
+  # while uf[1]^2 + uf[2]^2 < 1
+    uf = u[end];
+    # s,u = ODE.ode45(gaussianmetric,uf,[0.0,ds]);
+    s,u = ode45(gaussianmetric, uf, [0.0,ds]);
+    k = find( x -> x[1]^2 + x[2]^2 > 1, u[2:end]);
+    #s,u = ODE.ode45(gaussianmetric,uf,[0.0,ds],stopevent = (s,u) -> ( u[1]^2 + u[2]^2 > 1) );
+    #uf = u[end];
+  end
 
-# Using the last point inside and oustide, create a 4th order interpolant:
-k = k[1] + 1; # because it's skewed in the find!
-u1 = u[k-1]; u2 = u[k];
-s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1;
+  # Using the last point inside and oustide, create a 4th order interpolant:
+  k = k[1] + 1; # because it's skewed in the find!
+  u1 = u[k-1]; u2 = u[k];
+  s1 = s[k-1][1]; s2 = s[k][1]; spread = s2-s1;
 
-# u1 = u[end-1]; u2 = uf;
-# s1 = s[end-1][1]; s2 = s[end][1]; spread = s2-s1;
+  # u1 = u[end-1]; u2 = uf;
+  # s1 = s[end-1][1]; s2 = s[end][1]; spread = s2-s1;
 
-# Need more data points (specifically 5) for 4th order:
-dt = spread/4.0;
-tspan = 0:dt:spread;
-# sp,up = ODE.ode45(gaussianmetric,u1,tspan);
-s,u = ode45(gaussianmetric,u1,tspan);    # is still just adaptive???
-up = u[1:5]; sp = s[1:5] + s1;
-up[end] = u2; sp[end] = s2;
-xp = map( v -> v[1], up); yp = map( v-> v[2], up);
-xI = polyfit(sp,xp); yI = polyfit(sp, yp);
-dxI = polyder(xI); dyI = polyder(yI);
+  # Need more data points (specifically 5) for 4th order:
+  dt = spread/4.0;
+  tspan = 0:dt:spread;
+  # sp,up = ODE.ode45(gaussianmetric,u1,tspan);
+  s,u = ode45(gaussianmetric,u1,tspan);    # is still just adaptive???
+  up = u[1:5]; sp = s[1:5] + s1;
+  up[end] = u2; sp[end] = s2;
+  xp = map( v -> v[1], up); yp = map( v-> v[2], up);
+  xI = polyfit(sp,xp); yI = polyfit(sp, yp);
+  dxI = polyder(xI); dyI = polyder(yI);
 
-# Now Newton solve applying these to the surface function:
-domain(x,y) = x.^2. + y.^2. - 1;
-domaingrad(x,y) = [2.*x, 2.*y];
-sdomain(s) = domain(xI(s),yI(s));
-sdomaingrad(s) = dot(domaingrad(xI(s),yI(s)) , [dxI(s), dyI(s)] );
-sout = newtonbisection(sdomain, sdomaingrad, s1, s2, 1e-5);
+  # Now Newton solve applying these to the surface function:
+  domain(x,y) = x.^2. + y.^2. - 1;
+  domaingrad(x,y) = [2.*x, 2.*y];
+  sdomain(s) = domain(xI(s),yI(s));
+  sdomaingrad(s) = dot(domaingrad(xI(s),yI(s)) , [dxI(s), dyI(s)] );
+  sout = newtonbisection(sdomain, sdomaingrad, s1, s2, 1e-5);
 
-vxp = map( v -> v[3], up); vyp = map( v-> v[4], up);
-vxI = polyfit(sp,vxp); vyI = polyfit(sp, vyp);
+  vxp = map( v -> v[3], up); vyp = map( v-> v[4], up);
+  vxI = polyfit(sp,vxp); vyI = polyfit(sp, vyp);
 
-# uf = [xI(sout), yI(sout), vxI(sout), vyI(sout)];
-return [xI(sout), yI(sout), vxI(sout), vyI(sout)];
+  # uf = [xI(sout), yI(sout), vxI(sout), vyI(sout)];
+  return [xI(sout), yI(sout), vxI(sout), vyI(sout)];
 
-# # Because it is not rootfinding when terminating:
-# uf[1] = uf[1]/sqrt(uf[1]^2 + uf[2]^2);
-# uf[2] = uf[2]/sqrt(uf[1]^2 + uf[2]^2);
-#
-# # Normalize velocity for direction:
-# uf[3] = uf[3]/sqrt(uf[3]^2 + uf[4]^2);
-# uf[4] = uf[4]/sqrt(uf[3]^2 + uf[4]^2);
+  # # Because it is not rootfinding when terminating:
+  # uf[1] = uf[1]/sqrt(uf[1]^2 + uf[2]^2);
+  # uf[2] = uf[2]/sqrt(uf[1]^2 + uf[2]^2);
+  #
+  # # Normalize velocity for direction:
+  # uf[3] = uf[3]/sqrt(uf[3]^2 + uf[4]^2);
+  # uf[4] = uf[4]/sqrt(uf[3]^2 + uf[4]^2);
 
-# return uf;
+  # return uf;
 
 end
 
@@ -328,47 +482,145 @@ function CGscatteringrelation(Nrotate, Nangle)
 # Gather the exit data for the incidence data along the
 # West(left),North(top),East(right),South(bottom) edges.
 
-ds=1;
-dtheta = 2*pi/Nrotate;
-dphi = pi/Nangle;
-uTotExit = Array{Any}(Nrotate - 1, Nangle - 1);
-# For the cells, each row is a point on the boundary edge and each collumn is
-# an angle of incidence.
+  ds=1;
+  dtheta = 2*pi/Nrotate;
+  dphi = pi/Nangle;
+  uTotExit = Array{Any}(Nrotate - 1, Nangle - 1);
+  # For the cells, each row is a point on the boundary edge and each collumn is
+  # an angle of incidence.
 
 
-for i = 1:Nrotate-1
-    for j = 1:Nangle-1
-      ds = 2*j*dphi*(Nangle-j)/Nangle;
-      u0 = [cos(i*dtheta), sin(i*dtheta), cos(i*dtheta + pi/2 + j*dphi), sin(i*dtheta + pi/2 + j*dphi)];
-      uTotExit[i,j] = circlegaussianrelation(u0,ds);
-    end
-end
+  for i = 1:Nrotate-1
+      for j = 1:Nangle-1
+        ds = 2*j*dphi*(Nangle-j)/Nangle;
+        u0 = [cos(i*dtheta), sin(i*dtheta), cos(i*dtheta + pi/2 + j*dphi), sin(i*dtheta + pi/2 + j*dphi)];
+        uTotExit[i,j] = circlegaussianrelation(u0,ds);
+      end
+  end
 
-return uTotExit;
+  return uTotExit;
 
 end
 
 
 #################################################
 
+# If f and fd are polynomials we need to use the companion matrix method
+function newtonbisection(f,df,
+                         a::Float64,b::Float64,
+                         tol::Float64; # this should be optional
+                         maxiter::Int64 = 100)
+# Newton Bissection...?
+# what is this supposed to do?
+  p = a;
+  iter = 1;
+  while abs(f(p)[1]) > tol && iter < maxiter
 
-function newtonbisection(f,df,a::Float64,b::Float64,tol)
-maxiter = 100;
-p=a; iter = 1;
-while abs(f(p)[1]) > tol && iter < 100
-  iter = iter + 1;
-   p = p - f(p)/df(p);
-   if p>b
-       p=(a+b)/2; end;
-   if p<a
-       p=(a+b)/2; end;
-   if f(p)*f(b)<0
-       a=p;
-   else
-       b=p;
-   end
+    iter += 1;
+    #p = p - f(p)/df(p);
+    p -= f(p)/df(p);
+
+    (p>b) && (p = (a+b)/2);
+    # if p>b
+    #      p=(a+b)/2;
+    # end;
+
+    (p<a) && (p = (a+b)/2);
+    # if p<a
+    #      p=(a+b)/2;
+    # end;
+
+    f(p)*f(b)<0 ? a = p : b = p ;
+    # if f(p)*f(b)<0
+    #   a=p;
+    # else
+    #   b=p;
+    # end
+
+  end
+
+  return p
+
 end
 
-return p;
 
+#######################################################
+#### Auxiliary parallel functions
+
+@everywhere function myrange(q::SharedArray)
+    idx = indexpids(q)
+    if idx == 0
+        # This worker is not assigned a piece
+        return 1:0, 1:0
+    end
+    nchunks = length(procs(q))
+    splits = [round(Int, s) for s in linspace(0,size(q)[end],nchunks+1)]
+    1:size(q)[end-1], splits[idx]+1:splits[idx+1]
 end
+
+@everywhere scatteringrelation_shared_chunk!(U::SharedArray,
+                                             u0F::Function,
+                                             dsF::Function,
+                                             metric::Function) = scatteringrelation_chunk!(U,u0F,dsF,metric, myrange(U)...)
+
+@everywhere function scatteringrelation_chunk!(U::SharedArray, u0Function::Function,
+                                               dsF::Function, metric::Function,
+                                               irange::UnitRange{Int64},
+                                               jrange::UnitRange{Int64})
+    #@show (irange, jrange)  # display so we can see what's happening
+
+    for i in irange
+      ds = dsF(i);
+      for j in jrange
+          u0 = u0Function(i,j)  # 3-vars Left
+          @inbounds U[:,i,j] = squaregaussianrelation(metric,u0,ds);
+      end
+    end
+end
+
+
+######################################################
+########### Parallel communication macros ############
+
+function sendtosimple(p::Int, name, val)
+  ref = @spawnat(p, eval(Main, Expr(:( =), name, val)))
+end
+
+macro sendto(p, name, val)
+  return :(sendtosimple($p, $name, $val))
+end
+
+macro broadcast(name, val)
+  quote
+  @sync for p in workers()
+    @async sendtosimple(p, $name, $val)
+  end
+  end
+end
+
+getfrom(p::Int, nm::Symbol; mod=Main) = fetch(@spawnat(p, getfield(mod, nm)))
+
+function passobj(src::Int, target::Vector{Int}, nm::Symbol;
+                 from_mod=Main, to_mod=Main)
+    r = RemoteRef(src)
+    @spawnat(src, put!(r, getfield(from_mod, nm)))
+    for to in target
+        @spawnat(to, eval(to_mod, Expr(:(=), nm, fetch(r))))
+    end
+    nothing
+end
+
+
+function passobj(src::Int, target::Int, nm::Symbol; from_mod=Main, to_mod=Main)
+    passobj(src, [target], nm; from_mod=from_mod, to_mod=to_mod)
+end
+
+
+function passobj(src::Int, target, nms::Vector{Symbol};
+                 from_mod=Main, to_mod=Main)
+    for nm in nms
+        passobj(src, target, nm; from_mod=from_mod, to_mod=to_mod)
+    end
+end
+
+#####################################################################
